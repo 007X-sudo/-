@@ -122,7 +122,7 @@ function buildSearchIndex() {
 
 function renderNav() {
   $('#primaryNav').innerHTML = pages.map(page => `<button class="nav-item ${page.id === state.route ? 'active' : ''}" data-route="${page.id}"><span class="nav-icon" aria-hidden="true">${page.icon}</span><span>${page.name}</span></button>`).join('');
-  document.querySelectorAll('[data-route]').forEach(element => element.addEventListener('click', () => navigate(element.dataset.route)));
+  document.querySelectorAll('#primaryNav [data-route]').forEach(element => element.addEventListener('click', () => navigate(element.dataset.route)));
 }
 
 function sectionGlyph(title) {
@@ -158,7 +158,7 @@ const quickIconPaths = {
   archive: '<path d="M4 7h16v13H4zM3 4h18v3H3zM9 12h6"/>'
 };
 function quickIcon(route) { return `<span class="entry-icon entry-icon-${route}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${quickIconPaths[route] || '<circle cx="12" cy="12" r="8"/>'}</svg></span>`; }
-function sectionHead(title, detail, link = '') { return `<div class="section-head"><span class="section-icon" aria-hidden="true">${sectionGlyph(title)}</span><div class="section-copy"><h2>${title}</h2><p>${detail}</p></div>${link ? `<button class="section-link" data-route="${link}">查看全部 →</button>` : ''}</div>`; }
+function sectionHead(title, detail, link = '') { return `<div class="section-head"><span class="section-icon" aria-hidden="true">${sectionGlyph(title)}</span><div class="section-copy"><h2>${title}</h2><p>${detail}</p></div>${link ? `<button class="section-link" data-route="${link}">查看全部 →</button>` : ''}${state.route !== 'home' ? '<button class="section-home-link" data-route="home" aria-label="返回首页">⌂ 首页</button>' : ''}</div>`; }
 function actionLink(url, label, kind = '') {
   const isDownload = kind === 'download' || String(url).startsWith('downloads/');
   const icon = isDownload ? '↓' : '↗';
@@ -193,7 +193,6 @@ function renderHome() {
     <section class="section">${sectionHead('快速入口', '从你现在最需要的地方开始')}<div class="grid grid-3">${entries.map(([route, icon, title, desc]) => `<button class="entry-card" data-route="${route}">${quickIcon(route)}<strong>${title}</strong><small>${desc}</small></button>`).join('')}</div></section>
     <section class="section">${sectionHead('南华校园印象', '两校区入口、校园建筑与运动空间')}<div class="photo-grid"><figure class="photo-card"><img src="assets/images/gate-hongxiang.jpg" alt="南华大学红湘校区正门" fetchpriority="high"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>主校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.jpg" alt="南华大学雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区正门</strong><small>新校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.jpg" alt="南华大学南华楼夜景"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/library.jpg" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.jpg" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.jpg" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section>
     <section class="section">${sectionHead('新生先看这三件事', '减少临近报到时的信息焦虑')}<div class="grid grid-3"><div class="info-card card"><h3>先确认校区与时间</h3><p>报到校区、时间和流程请以录取材料、迎新系统及学院通知为准。</p></div><div class="info-card card"><h3>再准备证件和材料</h3><p>录取通知书、身份证、证件照和按要求的档案材料优先准备。</p></div><div class="info-card card"><h3>最后购买生活用品</h3><p>床品尺寸、宿舍规定和快递地址先确认，避免重复购买或寄错地址。</p></div></div></section>`;
-  bindRouteButtons($('#page-home'));
 }
 
 function bindScrollExpand() {
@@ -415,7 +414,6 @@ function renderResources(section) {
   const certificateExams = (section.certificateExams || []).map(renderResourceCard).join('');
   const quickRoutes = (section.quickRoutes || []).map(item => `<button class="resource-quick-card" data-route="${esc(item.route)}">${quickIcon(item.route)}<span><strong>${esc(item.title)}</strong><small>${esc(item.text)}</small></span><b aria-hidden="true">→</b></button>`).join('');
   $('#page-resources').innerHTML = `<section class="section resource-page">${sectionHead(section.title, section.subtitle)}${sourceMeta(section.source || state.data.site.source, section.reviewed, '资源整理')}${notice('校内平台入口和考试报名网址可能随学校或主办方调整；没有统一网页入口的服务保留使用说明，请以当年通知为准。', true)}<div class="resource-block"><div class="resource-block-head"><h3>校内平台</h3><p>先收藏常用入口，再按通知完成登录和绑定</p></div><div class="resource-grid">${platforms}</div></div><div class="resource-block"><div class="resource-block-head"><h3>大一课程学习资源</h3><p>高数、英语、思政和计算机基础先从公开课程入门</p></div><div class="resource-grid">${freshmanResources}</div></div><div class="resource-block"><div class="resource-block-head"><h3>证书考试</h3><p>按专业和长期规划选择，不盲目堆证书</p></div><div class="resource-grid">${certificateExams}</div></div><div class="resource-block resource-quick-block"><div class="resource-block-head"><h3>成长板块快速入口</h3><p>从学习资源直接跳到竞赛、实习和升学规划</p></div><div class="resource-quick-grid">${quickRoutes}</div></div></section>`;
-  bindRouteButtons($('#page-resources'));
 }
 
 function renderCourse(section) {
@@ -464,7 +462,7 @@ renderers.compete = renderCompete;
 renderers.resources = () => renderResources((state.data.extended?.sections || []).find(item => item.id === 'resources'));
 renderers.course = () => renderCourse((state.data.extended?.sections || []).find(item => item.id === 'course'));
 renderers.classCampaign = () => renderClassCampaign((state.data.extended?.sections || []).find(item => item.id === 'classCampaign'));
-function navigate(route, syncHash = true) { state.route = pageMeta(route).id; if (syncHash && window.location.hash !== `#${state.route}`) window.history.pushState(null, '', `#${state.route}`); document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${state.route}`)); $('#contact').classList.toggle('is-hidden', state.route !== 'home'); $('#thanks').classList.toggle('is-hidden', state.route !== 'home'); renderNav(); renderers[state.route](); if (state.route === 'home') window.__xiangnanScrollExpandRefresh?.(); $('#pageTitle').textContent = pageMeta(state.route).name; $('#pageSubtitle').textContent = pageMeta(state.route).sub; $('#topbar').classList.remove('nav-open'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function navigate(route, syncHash = true) { state.route = pageMeta(route).id; if (syncHash && window.location.hash !== `#${state.route}`) window.history.pushState(null, '', `#${state.route}`); document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${state.route}`)); $('#contact').classList.toggle('is-hidden', state.route !== 'home'); $('#thanks').classList.toggle('is-hidden', state.route !== 'home'); renderNav(); renderers[state.route](); bindRouteButtons($('#page-' + state.route)); if (state.route === 'home') window.__xiangnanScrollExpandRefresh?.(); $('#pageTitle').textContent = pageMeta(state.route).name; $('#pageSubtitle').textContent = pageMeta(state.route).sub; $('#topbar').classList.remove('nav-open'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function bindRouteButtons(root = document) { root.querySelectorAll('[data-route]').forEach(element => element.addEventListener('click', () => navigate(element.dataset.route))); }
 function openModal() { $('#modal').classList.add('open'); $('#overlay').classList.add('open'); document.body.style.overflow = 'hidden'; bindModalButtons(); }
 function closeModal() { $('#modal').classList.remove('open'); $('#overlay').classList.remove('open'); document.body.style.overflow = ''; }
