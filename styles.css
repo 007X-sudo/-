@@ -696,6 +696,7 @@ img { max-width: 100%; }
   .check-summary .text-button { margin-left: auto; }
   .search-result strong { align-items: flex-start; flex-direction: column; gap: 3px; }
   .content-meta { margin-top: -5px; }
+  .photo-grid .photo-card img { aspect-ratio: 4 / 3; }
 }
 
 /* Keep the homepage quick-entry cards in two columns and keep hero controls tappable. */
