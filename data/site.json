@@ -1,0 +1,19 @@
+{
+  "updated": "2026-09-16",
+  "reviewed": "2026-09-25",
+  "school": {
+    "name": "南华大学",
+    "english": "University of South China",
+    "location": "湖南省衡阳市",
+    "slogan": "明德、博学、求是、致远",
+    "overview": "南华大学是湖南省国内一流大学建设高校，学校官网公开信息显示，学校由原中南工学院与衡阳医学院等办学力量组建发展而来，形成了医学、核科学与技术、工学、管理学等多学科协调发展的办学格局。"
+  },
+  "facts": [
+    {"label":"学校所在地","value":"湖南 · 衡阳","icon":"⌖"},
+    {"label":"英文名","value":"University of South China","icon":"文"},
+    {"label":"办学类型","value":"综合性大学","icon":"◎"},
+    {"label":"信息来源","value":"学校官网","icon":"↗"}
+  ],
+  "source": {"label":"南华大学学校简介","url":"https://www.usc.edu.cn/xxgk/xxjj.htm"},
+  "notice": "本文内容为校园信息整理，专业计划、收费标准、报到时间和宿舍安排每年可能调整，请以南华大学官网及录取通知书中的最新通知为准。"
+}
