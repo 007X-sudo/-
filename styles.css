@@ -528,7 +528,7 @@ button { border: 0; cursor: pointer; color: inherit; }
   .section-head .section-home-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 30px; margin-left: auto; padding: 5px 9px; border: 1px solid #c9ded9; border-radius: 8px; color: var(--teal); background: #f1f8f5; font-size: 12px; font-weight: 700; white-space: nowrap; }
   .page-heading { display: none; }
   .search-box { width: auto; flex: 1; }
-  .primary-nav { position: absolute; left: 0; top: 100%; width: min(290px, 85vw); height: calc(100vh - 69px); display: block; padding: 15px; background: var(--card); box-shadow: 15px 20px 35px rgba(8,43,55,.12); transform: translateX(-105%); transition: transform .2s ease; }
+  .primary-nav { position: absolute; left: 0; top: 100%; width: min(290px, 85vw); height: calc(100vh - 69px); max-height: calc(100dvh - 69px); display: block; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 15px; background: var(--card); box-shadow: 15px 20px 35px rgba(8,43,55,.12); transform: translateX(-105%); transition: transform .2s ease; }
   .topbar.nav-open .primary-nav { transform: translateX(0); }
   .nav-item { display: block; width: 100%; text-align: left; margin-bottom: 3px; }
   .content { padding: 24px 16px 38px; }
