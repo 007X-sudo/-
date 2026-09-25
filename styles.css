@@ -576,7 +576,12 @@ button { border: 0; cursor: pointer; color: inherit; }
   .course-round-grid, .course-credit-grid, .course-elective-columns, .course-tip-grid, .course-pitfall-grid { grid-template-columns: 1fr; }
   .course-round-card { min-height: 0; }
   .thanks-inner { padding: 22px 18px; }
-  .thanks-grid { grid-template-columns: 1fr; }
+  .thanks-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .thanks-card { align-items: flex-start; flex-direction: column; gap: 7px; padding: 11px 9px; }
+  .thanks-mark { width: 30px; height: 30px; font-size: 13px; }
+  .thanks-card strong { font-size: 12px; line-height: 1.45; }
+  .thanks-card p { font-size: 11px; line-height: 1.5; }
+  .thanks-card .thanks-social { font-size: 10px; overflow-wrap: anywhere; }
   .class-role-heading { align-items: flex-start; flex-wrap: wrap; gap: 3px 9px; }
   .class-role-heading p { width: 100%; }
   .class-role-card header { padding: 15px 17px; }

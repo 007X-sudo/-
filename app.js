@@ -483,6 +483,7 @@ function answerQuestion(query) { const results = search(query); if (!results.len
 
 async function init() {
   try { await loadData(); renderNav(); renderHome(); renderAbout(); renderMajors(); renderCampus(); renderDorm(); renderChecklist(); renderPolicies(); renderMedical(); renderFaq(); bindScrollExpand(); const initialRoute = location.hash.slice(1); navigate(pages.some(page => page.id === initialRoute) ? initialRoute : 'home', false); } catch (error) { $('#content').innerHTML = `<div class="card info-card"><h2>页面暂时无法加载</h2><p>请通过本地静态服务器或 GitHub Pages 打开，直接双击 HTML 可能会阻止读取 JSON 数据。</p><p class="meta">${esc(error.message)}</p></div>`; }
+  $('#mobileHomeLink').addEventListener('click', () => navigate('home'));
   const syncHashRoute = () => { const route = location.hash.slice(1); if (pages.some(page => page.id === route) && route !== state.route) navigate(route, false); };
   window.addEventListener('hashchange', syncHashRoute);
   window.addEventListener('popstate', syncHashRoute);
