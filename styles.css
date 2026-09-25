@@ -692,3 +692,8 @@ img { max-width: 100%; }
   .search-result strong { align-items: flex-start; flex-direction: column; gap: 3px; }
   .content-meta { margin-top: -5px; }
 }
+
+/* Keep the homepage quick-entry cards in two columns and keep hero controls tappable. */
+.grid:has(> .entry-card) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hero::before, .hero::after { pointer-events: none; }
+.hero-content { z-index: 1; }
