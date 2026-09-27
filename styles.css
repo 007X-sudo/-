@@ -719,3 +719,30 @@ img { max-width: 100%; }
 .grid:has(> .entry-card) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hero::before, .hero::after { pointer-events: none; }
 .hero-content { z-index: 1; }
+
+/* ========== 政策与资助：工作轴入口 + 可视化时间轴 ========== */
+.policy-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.policy-toolbar-hint { color: var(--muted); font-size: 12px; }
+.timeline-button { border-color: var(--navy); color: #fff; background: var(--navy); }
+.timeline-button:hover { border-color: var(--teal); color: #fff; background: var(--teal); box-shadow: 0 7px 16px rgba(31,122,120,.22); }
+.timeline-button .action-icon { color: #fff; background: rgba(255,255,255,.18); }
+
+.aid-timeline { display: grid; gap: 20px; }
+.modal-body .aid-tl-month-title { margin: 0 0 10px; color: var(--navy); font-size: 14px; }
+.aid-tl-track { display: grid; gap: 10px; }
+.aid-tl-node { display: block; min-width: 0; padding: 12px 15px; border: 1px solid var(--line); border-left: 3px solid var(--teal); border-radius: 10px; background: #f7faf8; }
+.aid-tl-node.is-rolling { border-left-color: var(--faint); }
+.aid-tl-date { display: inline-block; margin: 0 0 7px; padding: 2px 9px; border-radius: 20px; background: rgba(31,122,120,.11); color: var(--teal); font-size: 12px; font-weight: 700; }
+.aid-tl-node.is-rolling .aid-tl-date { background: rgba(148,161,163,.16); color: var(--faint); }
+.aid-tl-card { min-width: 0; }
+.aid-tl-card h4 { margin: 0 0 6px; color: var(--navy); font-size: 13px; }
+.aid-tl-card ul { margin: 0; padding-left: 17px; display: grid; gap: 5px; }
+.aid-tl-card li { color: var(--muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.aid-tl-card li strong { color: var(--ink); }
+.aid-tl-card li em { color: var(--faint); font-style: normal; }
+.modal-body .aid-tl-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+
+@media (max-width: 520px) {
+  .policy-toolbar { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .aid-tl-node { padding: 11px 13px; }
+}

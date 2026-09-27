@@ -50,7 +50,7 @@ function sourceMeta(source, reviewed, status = '资料整理') {
 }
 
 async function loadData() {
-  const names = ['site', 'majors', 'campus', 'dorm', 'checklist', 'policies', 'faq', 'extended', 'medical', 'competitions'];
+  const names = ['site', 'majors', 'campus', 'dorm', 'checklist', 'policies', 'faq', 'extended', 'medical', 'competitions', 'schedule'];
   const entries = await Promise.all(names.map(async name => [name, await fetch(`data/${name}.json`).then(response => {
     if (!response.ok) throw new Error(`${name} ${response.status}`);
     return response.json();
@@ -314,7 +314,19 @@ function renderPolicies() {
   const scholarshipPanel = scholarships.length ? `<section class="aid-panel"><div class="aid-panel-head"><h3>奖助学金</h3><span>图片整理参考</span></div><div class="aid-awards">${scholarships.map(item => `<article class="aid-award"><h4>${esc(item.title)} <strong>${esc(item.amount || '')}</strong></h4><p>${esc(item.text)}</p><small>${esc(item.tag || '')}</small></article>`).join('')}</div></section>` : '';
   const aidPanel = aidWays.length ? `<section class="aid-list-card"><h3>其他资助方式</h3><ul>${aidWays.map(item => `<li><strong>${esc(item.title)}：</strong><span>${esc(item.text)}</span></li>`).join('')}</ul></section>` : '';
   const regularCards = regular.map(item => `<article class="card info-card"><h3>${esc(item.title)}</h3><p>${esc(item.text)}</p>${item.tag ? `<div class="meta" style="margin-top:12px">${esc(item.tag)}</div>` : ''}</article>`).join('');
-  $('#page-policies').innerHTML = `<section class="section">${sectionHead('政策与资助', '学校构建了奖、勤、贷、助、补、减、免、缓多措并举的资助体系')}${notice('下方奖学金金额、获奖比例和资助方式根据用户提供的图片整理，仅作参考；评审条件、名额、金额和办理时间以南华大学当年正式文件为准。', true)}${scholarshipPanel}${aidPanel}<div class="grid grid-2 policy-regular-grid">${regularCards}</div><div style="margin-top:16px">${sourceLink(state.data.site.source)}</div></section>`;
+  const schedule = state.data.schedule;
+  const aidToolbar = schedule ? `<div class="policy-toolbar"><button class="action-button timeline-button" type="button" id="openAidTimeline"><span class="action-icon" aria-hidden="true">▤</span><span>查看资助工作时间轴</span></button><span class="policy-toolbar-hint">按截止时间排列，一眼看清每个节点该做什么</span>${actionLink('downloads/2026-autumn-aid-schedule.xlsx', '下载梳理表', 'download')}</div>` : '';
+  $('#page-policies').innerHTML = `<section class="section">${sectionHead('政策与资助', '学校构建了奖、勤、贷、助、补、减、免、缓多措并举的资助体系')}${notice('资助模块的办理条件、流程与时间节点，已对照《关于 2026 年秋季开学期间学生资助工作的重要通知》和《秋季学期资助工作和相关活动事项梳理》整理；奖助学金金额与获奖比例部分沿用早期图片整理。评审条件、名额、金额和办理时间仍以南华大学当年正式文件为准。', true)}${aidToolbar}${scholarshipPanel}${aidPanel}<div class="grid grid-2 policy-regular-grid">${regularCards}</div><div style="margin-top:16px">${sourceLink(state.data.site.source)}</div></section>`;
+  $('#openAidTimeline')?.addEventListener('click', openAidTimeline);
+}
+
+function openAidTimeline() {
+  const data = state.data.schedule;
+  if (!data) return;
+  const months = (data.months || []).map(group => `<section class="aid-tl-month"><h3 class="aid-tl-month-title">${esc(group.month)}</h3><div class="aid-tl-track">${(group.nodes || []).map(node => `<article class="aid-tl-node"><span class="aid-tl-date">${esc(node.date)}</span><div class="aid-tl-card"><h4>${esc(node.title)}</h4><ul>${(node.entries || []).map(entry => `<li><strong>${esc(entry.project)}</strong>：${esc(entry.step)}${entry.who ? `<em>（${esc(entry.who)}）</em>` : ''}</li>`).join('')}</ul></div></article>`).join('')}</div></section>`).join('');
+  const rolling = (data.rolling || []).length ? `<section class="aid-tl-month"><h3 class="aid-tl-month-title">时间以通知为准</h3><div class="aid-tl-track">${data.rolling.map(item => `<article class="aid-tl-node is-rolling"><span class="aid-tl-date">待通知</span><div class="aid-tl-card"><h4>${esc(item.project)}</h4><p>${esc(item.note)}</p></div></article>`).join('')}</div></section>` : '';
+  $('#modalCard').innerHTML = `<div class="modal-head"><button class="modal-close" data-close-modal>×</button><h2>${esc(data.title)}</h2><p>${esc(data.subtitle)}</p></div><div class="modal-body">${notice(data.notice, true)}<div class="aid-timeline">${months}${rolling}</div>${data.source ? `<div style="margin-top:16px">${actionLink(data.source.url, data.source.label, 'download')}</div>` : ''}</div>`;
+  openModal();
 }
 function renderMedical() { renderSimpleCollection('medical', '学生医保', '2026 级参保与报销信息整理', state.data.medical.items, state.data.medical.source); }
 
