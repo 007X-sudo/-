@@ -100,15 +100,19 @@ button { border: 0; cursor: pointer; color: inherit; }
 .entry-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: #c9dbd8; }
 .entry-icon { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #f2c9bb; border-radius: 12px; background: linear-gradient(145deg, #fff8f4, var(--coral-soft)); color: var(--coral); margin-bottom: 10px; transform: translateZ(0); transition: transform .2s ease, box-shadow .2s ease, color .2s ease; }
 .entry-card:hover .entry-icon { color: var(--teal); transform: translateY(-4px) rotate(-3deg); box-shadow: 0 8px 17px rgba(31,122,120,.16); }
-.entry-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 120; }
-/* 空闲状态下图标必须完整可见；「描边生长」只在鼠标悬停时播放一次。
+.entry-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 120; animation: icon-draw .95s ease-out both; }
+/* 入场时描边生长一次，播完停在完整状态（fill-mode: both）。
+   原来是 5s 无限循环，导致大部分时间只画出一半、看起来像坏掉；改成一次性即可两者兼得。
    注意：stroke-dasharray 必须大于最长路径（实测最长 106.8），否则图标永远画不全。 */
-.entry-card:hover .entry-icon svg { animation: icon-draw .55s ease-out; }
-@keyframes icon-draw { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+.entry-card:nth-child(3n + 2) .entry-icon svg { animation-delay: .12s; }
+.entry-card:nth-child(3n) .entry-icon svg { animation-delay: .24s; }
+/* 鼠标移上去再画一遍；必须清掉错峰延迟，否则手感发滞 */
+.entry-card:hover .entry-icon svg { animation: icon-draw .55s ease-out; animation-delay: 0s; }
+@keyframes icon-draw { from { stroke-dashoffset: 120; opacity: .55; } to { stroke-dashoffset: 0; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   /* 悬停动画的选择器优先级更高，必须一并列出才能真正关掉 */
   .entry-icon, .entry-icon svg, .entry-card:hover .entry-icon svg { animation: none; transition: none; }
-  .entry-icon svg { stroke-dashoffset: 0; }
+  .entry-icon svg { stroke-dashoffset: 0; opacity: 1; }
 }
 .entry-card strong { display: block; color: var(--navy); font-size: 14px; }
 .entry-card small { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
