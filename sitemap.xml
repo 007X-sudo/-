@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  说明：本站目前是单页应用（SPA），各个板块通过 URL 的 #锚点 切换。
+  搜索引擎会把 #锚点 视为同一个页面，所以这里只登记真实存在的入口地址。
+  等做了预渲染（每个板块生成独立的静态 HTML 与独立 URL）之后，
+  再把各板块地址逐条加进来，SEO 效果才会真正体现。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://007x-sudo.github.io/-/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

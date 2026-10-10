@@ -31,6 +31,93 @@ const pages = [
 const $ = (selector, root = document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pageMeta = id => pages.find(page => page.id === id) || pages[0];
+
+// 每张图的固有宽高：写进 <img> 的 width/height，让浏览器提前预留位置，避免加载时页面跳动（CLS）。
+// 由 tools/optimize-images.py 生成的 image-meta.json 同步而来，新增或替换图片后记得更新。
+const IMAGE_META = {
+  'assets/images/gate-hongxiang.webp': [1400, 927],
+  'assets/images/gate-yumu.webp': [1000, 750],
+  'assets/images/library.webp': [1000, 682],
+  'assets/images/nanhualou.webp': [1000, 625],
+  'assets/images/teaching-building.webp': [800, 500],
+  'assets/images/playground.webp': [800, 500],
+  'assets/images/campus-map-hongxiang.webp': [1056, 720],
+  'assets/images/campus-map-yumu.webp': [1400, 989],
+  'assets/images/usc-emblem.webp': [600, 432],
+  'assets/images/computer-advantages.webp': [590, 1400],
+  'assets/images/computer-after-sales.webp': [875, 1400],
+  'assets/images/computer-lenovo-authority.webp': [1050, 1400],
+  'assets/images/computer-machrev-authority.webp': [997, 1400],
+  'assets/images/computer-profile.webp': [630, 1400],
+  'assets/images/computer-service-card.webp': [787, 1400],
+  'assets/images/wechat-contact.png': [447, 660],
+  'assets/images/thanks-inspiration.jpg': [316, 480]
+};
+const HERO_IMAGE = 'assets/images/gate-hongxiang.webp';
+
+// 所有图片统一在渲染后补 loading / decoding / width / height：
+// 首屏大图立即加载，其余懒加载。这样各个模板里不用逐个手写这些属性。
+function applyImageHints(root = document) {
+  root.querySelectorAll('img').forEach(image => {
+    const src = (image.getAttribute('src') || '').trim();
+    const size = IMAGE_META[src];
+    if (size) {
+      if (!image.hasAttribute('width')) image.setAttribute('width', size[0]);
+      if (!image.hasAttribute('height')) image.setAttribute('height', size[1]);
+    }
+    if (!image.hasAttribute('decoding')) image.setAttribute('decoding', 'async');
+    if (src === HERO_IMAGE && image.closest('.scroll-expand')) {
+      image.setAttribute('loading', 'eager');
+      image.setAttribute('fetchpriority', 'high');
+    } else if (!image.hasAttribute('loading')) {
+      image.setAttribute('loading', 'lazy');
+    }
+  });
+}
+
+// 中文检索分词：原先只按空格切词，导致「宿舍床品多大」这类自然短语搜不到结果。
+// 现在用 Intl.Segmenter 分词，并以汉字二元切分兜底，保证召回。
+const CJK_RUN = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g;
+const CJK_CHAR = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
+const QUERY_SPLIT = /[\s,，、。;；:：!！?？/\\|()（）[\]【】"'“”‘’*~+_-]+/;
+let zhSegmenter = null;
+try {
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) zhSegmenter = new Intl.Segmenter('zh-Hans', { granularity: 'word' });
+} catch (error) { zhSegmenter = null; }
+
+function cjkNgrams(word, maxN) {
+  const out = [];
+  for (let n = 2; n <= Math.min(maxN, word.length); n += 1) {
+    for (let i = 0; i + n <= word.length; i += 1) out.push(word.slice(i, i + n));
+  }
+  return out;
+}
+
+function buildQueryTerms(query) {
+  const raw = String(query || '').toLowerCase().trim();
+  if (!raw) return [];
+  const terms = new Set();
+  raw.split(QUERY_SPLIT).filter(Boolean).forEach(chunk => {
+    terms.add(chunk);
+    if (zhSegmenter) {
+      // 有分词器时只取「词」和「词内部」的二元/三元组（如「计算机」→ 计算、算机）。
+      // 不跨词切分，否则「专业学生」会被切成「业学」这种假词，命中一堆不相干的页面。
+      for (const part of zhSegmenter.segment(chunk)) {
+        const word = part.segment;
+        if (!part.isWordLike || !word.length) continue;
+        terms.add(word);
+        if (word.length >= 2 && CJK_CHAR.test(word)) cjkNgrams(word, 3).forEach(term => terms.add(term));
+      }
+      return;
+    }
+    // 没有分词器时退回整段切分（老浏览器兜底）
+    (chunk.match(CJK_RUN) || []).forEach(run => {
+      if (run.length === 1) { terms.add(run); return; }
+      cjkNgrams(run, 3).forEach(term => terms.add(term));
+    });
+  });
+  return [...terms].filter(Boolean);
+}
 const searchGroups = {
   入学: ['about', 'map', 'checklist', 'policies', 'medical', 'fees', 'antiScam', 'downloads'],
   校园: ['campus', 'dorm', 'errands', 'training', 'classCampaign', 'channels', 'faq'],
@@ -49,31 +136,73 @@ function sourceMeta(source, reviewed, status = '资料整理') {
   return `<div class="content-meta" aria-label="资料来源信息"><span class="content-status source-status-${sourceKind(status)}" title="资料类型：${esc(status)}">${esc(status)}</span><span>最近复核：${esc(date)}</span>${source ? sourceLink(source) : ''}</div>`;
 }
 
+// 首屏只加载这几个：首页、学校概况、专业库、校园生活、宿舍、清单、资助、医保、资助时间轴都要用。
+const CORE_DATA = ['site', 'majors', 'campus', 'dorm', 'checklist', 'policies', 'faq', 'medical', 'schedule'];
+// 体积大的两个（extended 约 52KB、competitions 约 78KB）改成进入对应板块时才加载。
+const LAZY_GROUPS = {
+  extended: ['map', 'errands', 'training', 'transfer', 'resources', 'downloads', 'skills', 'fees', 'antiScam', 'course', 'cert', 'channels', 'postgrad', 'job', 'feed', 'archive'],
+  competitions: ['compete']
+};
+const dataRequests = {};
+
+function lazyNamesForRoute(route) {
+  return Object.entries(LAZY_GROUPS).filter(([, routes]) => routes.includes(route)).map(([name]) => name);
+}
+
+function fetchData(name, rebuildIndex = true) {
+  if (state.data[name]) return Promise.resolve(state.data[name]);
+  if (!dataRequests[name]) {
+    dataRequests[name] = fetch(`data/${name}.json`).then(response => {
+      if (!response.ok) throw new Error(`${name} ${response.status}`);
+      return response.json();
+    }).then(json => {
+      state.data[name] = json;
+      // 新数据到位后重建检索索引，让搜索和「小凯」立刻能查到新板块。
+      if (rebuildIndex) state.searchIndex = buildSearchIndex();
+      return json;
+    }).catch(error => {
+      delete dataRequests[name];
+      throw error;
+    });
+  }
+  return dataRequests[name];
+}
+
+// 进入某个板块前，先把该板块需要的懒加载数据取回来。
+async function ensureDataForRoute(route) {
+  await Promise.all(lazyNamesForRoute(route).map(name => fetchData(name)));
+}
+
+// 首屏渲染完之后，趁浏览器空闲把剩下的大文件在后台悄悄取回来。
+// 这样首屏不用等它们，而搜索和「小凯」过一会儿仍然能覆盖全站内容。
+let prefetchStarted = false;
+function prefetchRemainingData() {
+  if (prefetchStarted) return;
+  prefetchStarted = true;
+  Object.keys(LAZY_GROUPS).forEach(name => fetchData(name).catch(() => {}));
+}
+
 async function loadData() {
-  const names = ['site', 'majors', 'campus', 'dorm', 'checklist', 'policies', 'faq', 'extended', 'medical', 'competitions', 'schedule'];
-  const entries = await Promise.all(names.map(async name => [name, await fetch(`data/${name}.json`).then(response => {
-    if (!response.ok) throw new Error(`${name} ${response.status}`);
-    return response.json();
-  })]));
-  state.data = Object.fromEntries(entries);
+  await Promise.all(CORE_DATA.map(name => fetchData(name, false)));
   state.searchIndex = buildSearchIndex();
 }
 
 function buildSearchIndex() {
   const site = state.data.site;
+  if (!site) return [];
   const source = site.source;
   const entries = [{ route: 'about', title: '学校概况', text: `${site.school.name} ${site.school.location} ${site.school.overview} ${site.school.slogan}`, source }];
-  state.data.majors.forEach(major => entries.push({ route: 'majors', title: major.name, text: `${major.name} ${major.college} ${major.type} ${major.summary} ${major.guidance || ''} ${(major.tags || []).join(' ')} ${(major.courses || []).join(' ')}`, source }));
-  state.data.campus.items.forEach(item => entries.push({ route: 'campus', title: item.title, text: `${item.title} ${item.text}`, source: state.data.campus.source }));
-  const nearby = state.data.campus.nearby || {};
+  (state.data.majors || []).forEach(major => entries.push({ route: 'majors', title: major.name, text: `${major.name} ${major.college} ${major.type} ${major.summary} ${major.guidance || ''} ${(major.tags || []).join(' ')} ${(major.courses || []).join(' ')} ${(major.directions || []).join(' ')}`, source }));
+  (state.data.campus?.items || []).forEach(item => entries.push({ route: 'campus', title: item.title, text: `${item.title} ${item.text}`, source: state.data.campus.source }));
+  const nearby = state.data.campus?.nearby || {};
   [['shopping', '周围商圈'], ['attractions', '知名景点'], ['stores', '推荐店铺']].forEach(([key, category]) => (nearby[key] || []).forEach(item => entries.push({ route: 'campus', title: item.title, text: `${category} ${item.title} ${item.text} ${item.distance || ''} ${item.location || ''}`, source: state.data.campus.source })));
-  const clubs = state.data.campus.clubsAndActivities || {};
+  const clubs = state.data.campus?.clubsAndActivities || {};
   (clubs.categories || []).concat(clubs.representatives || [], clubs.events || []).forEach(item => entries.push({ route: 'campus', title: item.title, text: `社团与活动 ${item.title} ${item.text}`, source: state.data.campus.source }));
-  state.data.dorm.items.forEach(item => entries.push({ route: 'dorm', title: item.title, text: `${item.title} ${item.text} ${item.tag}`, source: state.data.dorm.source }));
-  state.data.policies.forEach(item => entries.push({ route: 'policies', title: item.title, text: `${item.title} ${item.text} ${item.tag}`, source }));
-  state.data.faq.forEach(item => entries.push({ route: 'faq', title: item.q, text: `${item.q} ${item.a} ${(item.keywords || []).join(' ')}`, source }));
-  state.data.checklist.forEach(group => entries.push({ route: 'checklist', title: group.group, text: `${group.group} ${group.items.join(' ')}`, source }));
-  state.data.medical.items.forEach(item => entries.push({ route: 'medical', title: item.title, text: `${item.title} ${item.text}`, source: state.data.medical.source }));
+  (state.data.dorm?.items || []).forEach(item => entries.push({ route: 'dorm', title: item.title, text: `${item.title} ${item.text} ${item.tag}`, source: state.data.dorm.source }));
+  (state.data.policies || []).forEach(item => entries.push({ route: 'policies', title: item.title, text: `${item.title} ${item.text} ${item.tag}`, source }));
+  (state.data.faq || []).forEach(item => entries.push({ route: 'faq', title: item.q, text: `${item.q} ${item.a} ${(item.keywords || []).join(' ')}`, source }));
+  (state.data.checklist || []).forEach(group => entries.push({ route: 'checklist', title: group.group, text: `${group.group} ${group.items.join(' ')}`, source }));
+  (state.data.medical?.items || []).forEach(item => entries.push({ route: 'medical', title: item.title, text: `${item.title} ${item.text}`, source: state.data.medical.source }));
   (state.data.extended?.sections || []).forEach(section => {
     section.items.forEach(item => entries.push({ route: section.id, title: item.title, text: `${section.title} ${item.title} ${item.text} ${item.tag || ''}`, source: item.source || section.source || source }));
     if (section.id === 'errands' && section.computerPurchase) {
@@ -178,7 +307,7 @@ const tuitionByMajor = {
 function majorTuition(name) { return tuitionByMajor[name] ? `${tuitionByMajor[name]} 元/年` : '待按 2026 级缴费平台核对'; }
 
 function scrollExpandMarkup() {
-  return `<section class="scroll-expand" data-scroll-expand aria-label="南华大学红湘校区正门视觉开场"><div class="scroll-expand-track"><div class="scroll-expand-stage"><div class="scroll-expand-frame"><img class="scroll-expand-media" src="assets/images/gate-hongxiang.jpg" alt="南华大学红湘校区正门"><div class="scroll-expand-scrim"></div></div><div class="scroll-expand-title">南国以南，花开于华</div><div class="scroll-expand-hint"><span>向下滑动，走近南华</span><b aria-hidden="true">↓</b></div></div></div></section>`;
+  return `<section class="scroll-expand" data-scroll-expand aria-label="南华大学红湘校区正门视觉开场"><div class="scroll-expand-track"><div class="scroll-expand-stage"><div class="scroll-expand-frame"><img class="scroll-expand-media" src="assets/images/gate-hongxiang.webp" alt="南华大学红湘校区正门"><div class="scroll-expand-scrim"></div></div><div class="scroll-expand-title">南国以南，花开于华</div><div class="scroll-expand-hint"><span>向下滑动，走近南华</span><b aria-hidden="true">↓</b></div></div></div></section>`;
 }
 
 function renderHome() {
@@ -191,7 +320,7 @@ function renderHome() {
     <section class="section"><div class="grid grid-4">${factCards}</div></section>
     <section class="section newcomer-section">${sectionHead('新生任务路线', '按时间顺序完成关键准备，减少临近报到时的信息焦虑')}<div class="newcomer-path">${newcomerPath}</div></section>
     <section class="section">${sectionHead('快速入口', '从你现在最需要的地方开始')}<div class="grid grid-3">${entries.map(([route, icon, title, desc]) => `<button class="entry-card" data-route="${route}">${quickIcon(route)}<strong>${title}</strong><small>${desc}</small></button>`).join('')}</div></section>
-    <section class="section">${sectionHead('南华校园印象', '两校区入口、校园建筑与运动空间')}<div class="photo-grid"><figure class="photo-card"><img src="assets/images/gate-hongxiang.jpg" alt="南华大学红湘校区正门" fetchpriority="high"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>主校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.jpg" alt="南华大学雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区正门</strong><small>新校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.jpg" alt="南华大学南华楼夜景"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/library.jpg" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.jpg" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.jpg" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section>
+    <section class="section">${sectionHead('南华校园印象', '两校区入口、校园建筑与运动空间')}<div class="photo-grid"><figure class="photo-card"><img src="assets/images/gate-hongxiang.webp" alt="南华大学红湘校区正门" fetchpriority="high"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>主校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.webp" alt="南华大学雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区正门</strong><small>新校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.webp" alt="南华大学南华楼夜景"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/library.webp" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.webp" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.webp" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section>
     <section class="section">${sectionHead('新生先看这三件事', '减少临近报到时的信息焦虑')}<div class="grid grid-3"><div class="info-card card"><h3>先确认校区与时间</h3><p>报到校区、时间和流程请以录取材料、迎新系统及学院通知为准。</p></div><div class="info-card card"><h3>再准备证件和材料</h3><p>录取通知书、身份证、证件照和按要求的档案材料优先准备。</p></div><div class="info-card card"><h3>最后购买生活用品</h3><p>床品尺寸、宿舍规定和快递地址先确认，避免重复购买或寄错地址。</p></div></div></section>`;
 }
 
@@ -253,7 +382,7 @@ function bindScrollExpand() {
 
 function renderAbout() {
   const site = state.data.site;
-  $('#page-about').innerHTML = `<section class="section">${sectionHead('学校概况', '认识南华大学，从官方信息开始')}${sourceMeta(site.source, site.reviewed, '官方信息')}<div class="grid grid-2"><div class="card info-card"><div class="emblem-panel"><img src="assets/images/usc-emblem.jpg" alt="南华大学校徽"><div><h3>${esc(site.school.name)}</h3><p class="meta">${esc(site.school.english)}</p></div></div><p style="margin-top:16px">${esc(site.school.overview)}</p><p class="meta" style="margin-top:14px">校训：${esc(site.school.slogan)}<br>所在地：${esc(site.school.location)}</p></div><div class="card info-card"><h3>两个校区</h3><div class="photo-grid" style="grid-template-columns:repeat(2,1fr)"><figure class="photo-card"><img loading="lazy" src="assets/images/gate-hongxiang.jpg" alt="红湘校区正门"><figcaption class="photo-caption"><strong>红湘校区</strong><small>老校区正门</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.jpg" alt="雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区</strong><small>新校区正门</small></figcaption></figure></div></div></div></section><section class="section">${sectionHead('校园建筑', '图片名称来自用户提供的视觉资源')}<div class="photo-grid"><figure class="photo-card"><img loading="lazy" src="assets/images/library.jpg" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.jpg" alt="南华大学南华楼"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园建筑夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.jpg" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.jpg" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section><section class="section">${sectionHead('官方入口', '需要确认具体事项时，优先查看这些渠道')}<div class="grid grid-3"><a class="card info-card card-link" href="https://www.usc.edu.cn/" target="_blank" rel="noreferrer"><span class="card-link-icon" aria-hidden="true">↗</span><h3>南华大学官网</h3><p>学校新闻、通知公告与部门网站入口</p></a><a class="card info-card card-link" href="https://www.usc.edu.cn/xxgk/xxjj.htm" target="_blank" rel="noreferrer"><span class="card-link-icon" aria-hidden="true">↗</span><h3>学校简介</h3><p>办学历史、学校定位与基本情况</p></a><div class="card info-card"><h3>迎新与学院通知</h3><p>报到时间、校区、宿舍和班级信息以当年通知为准。</p></div></div></section>`;
+  $('#page-about').innerHTML = `<section class="section">${sectionHead('学校概况', '认识南华大学，从官方信息开始')}${sourceMeta(site.source, site.reviewed, '官方信息')}<div class="grid grid-2"><div class="card info-card"><div class="emblem-panel"><img src="assets/images/usc-emblem.webp" alt="南华大学校徽"><div><h3>${esc(site.school.name)}</h3><p class="meta">${esc(site.school.english)}</p></div></div><p style="margin-top:16px">${esc(site.school.overview)}</p><p class="meta" style="margin-top:14px">校训：${esc(site.school.slogan)}<br>所在地：${esc(site.school.location)}</p></div><div class="card info-card"><h3>两个校区</h3><div class="photo-grid" style="grid-template-columns:repeat(2,1fr)"><figure class="photo-card"><img loading="lazy" src="assets/images/gate-hongxiang.webp" alt="红湘校区正门"><figcaption class="photo-caption"><strong>红湘校区</strong><small>老校区正门</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.webp" alt="雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区</strong><small>新校区正门</small></figcaption></figure></div></div></div></section><section class="section">${sectionHead('校园建筑', '图片名称来自用户提供的视觉资源')}<div class="photo-grid"><figure class="photo-card"><img loading="lazy" src="assets/images/library.webp" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.webp" alt="南华大学南华楼"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园建筑夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.webp" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.webp" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section><section class="section">${sectionHead('官方入口', '需要确认具体事项时，优先查看这些渠道')}<div class="grid grid-3"><a class="card info-card card-link" href="https://www.usc.edu.cn/" target="_blank" rel="noreferrer"><span class="card-link-icon" aria-hidden="true">↗</span><h3>南华大学官网</h3><p>学校新闻、通知公告与部门网站入口</p></a><a class="card info-card card-link" href="https://www.usc.edu.cn/xxgk/xxjj.htm" target="_blank" rel="noreferrer"><span class="card-link-icon" aria-hidden="true">↗</span><h3>学校简介</h3><p>办学历史、学校定位与基本情况</p></a><div class="card info-card"><h3>迎新与学院通知</h3><p>报到时间、校区、宿舍和班级信息以当年通知为准。</p></div></div></section>`;
 }
 
 function renderMajors() {
@@ -284,16 +413,16 @@ function renderSimpleCollection(id, title, detail, items, source) {
 
 function renderCampus() {
   const items = state.data.campus.items.map(item => `<article class="card info-card"><h3>${esc(item.icon || '•')} ${esc(item.title)}</h3><p>${esc(item.text)}</p>${item.tag || item.status ? `<div class="meta" style="margin-top:12px">${esc(item.tag || item.status)}</div>` : ''}</article>`).join('');
-  const nearby = state.data.campus.nearby || {};
+  const nearby = state.data.campus?.nearby || {};
   const nearbyCards = (items, metaKey) => (items || []).map(item => `<article class="campus-life-card"><div class="campus-life-title"><span class="campus-life-mark" aria-hidden="true">${esc(item.icon || '•')}</span><h3>${esc(item.title)}</h3></div><p>${esc(item.text)}</p>${item[metaKey] ? `<div class="campus-life-meta">${esc(item[metaKey])}</div>` : ''}</article>`).join('');
   const nearbySection = (title, detail, key, metaKey) => `<section class="section campus-life-section">${sectionHead(title, detail)}${sourceMeta(state.data.campus.source, state.data.site.reviewed, '经验整理')}<div class="campus-life-grid">${nearbyCards(nearby[key], metaKey)}</div></section>`;
   const tips = (nearby.tips || []).map(item => `<article class="campus-tip-card"><h3>${esc(item.title)}</h3><p>${esc(item.text)}</p></article>`).join('');
-  const clubs = state.data.campus.clubsAndActivities || {};
+  const clubs = state.data.campus?.clubsAndActivities || {};
   const clubCards = (clubs.categories || []).map(item => `<article class="campus-life-card"><div class="campus-life-title"><span class="campus-life-mark" aria-hidden="true">${esc(item.icon || '•')}</span><h3>${esc(item.title)}</h3></div><p>${esc(item.text)}</p></article>`).join('');
   const representativeCards = (clubs.representatives || []).map(item => `<article class="campus-activity-card"><h3>${esc(item.title)}</h3><p>${esc(item.text)}</p></article>`).join('');
   const eventCards = (clubs.events || []).map(item => `<article class="campus-activity-card"><h3>${esc(item.title)}</h3><p>${esc(item.text)}</p></article>`).join('');
   const clubsSection = `<section class="section campus-life-section">${sectionHead('社团与活动', '热闹、多元，找到兴趣圈子也锻炼综合能力')}<div class="campus-activity-lead"><p>${esc(clubs.overview || '')}</p></div><h3 class="campus-activity-heading">社团体系</h3><div class="campus-life-grid">${clubCards}</div><h3 class="campus-activity-heading">代表性社团</h3><div class="campus-activity-grid">${representativeCards}</div><h3 class="campus-activity-heading">校园活动</h3><div class="campus-activity-grid">${eventCards}</div><div class="campus-activity-join"><strong>怎么参加</strong><p>${esc(clubs.join || '')}</p></div><p class="campus-life-note">${esc(clubs.note || '')}</p></section>`;
-  $('#page-campus').innerHTML = `<section class="section">${sectionHead('校园生活', '先了解服务，再到校探索')}${sourceMeta(state.data.campus.source, state.data.site.reviewed, '经验整理')}<div class="grid grid-2">${items}</div></section>${clubsSection}${nearbySection('周围商圈', '从红湘校区出发，逛街、吃饭和休闲都方便', 'shopping', 'distance')}${nearbySection('知名景点', '衡阳城市漫游与周末人文路线', 'attractions', 'distance')}${nearbySection('推荐店铺', '南华周边的学生美食地图', 'stores', 'location')}<section class="section campus-life-section">${sectionHead('游玩建议', '按时间和场景安排校园周边探索')}${sourceMeta(state.data.campus.source, state.data.site.reviewed, '经验整理')}<div class="campus-tip-grid">${tips}</div><p class="campus-life-note">${esc(nearby.note || '')}</p></section><section class="section">${sectionHead('校园建筑印象', '图片名称来自用户提供的视觉资源')}<div class="photo-grid"><figure class="photo-card"><img loading="lazy" src="assets/images/library.jpg" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.jpg" alt="南华大学南华楼"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园建筑夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.jpg" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.jpg" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-hongxiang.jpg" alt="南华大学红湘校区正门"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>校区入口视觉资料</small></figcaption></figure></div></section>`;
+  $('#page-campus').innerHTML = `<section class="section">${sectionHead('校园生活', '先了解服务，再到校探索')}${sourceMeta(state.data.campus.source, state.data.site.reviewed, '经验整理')}<div class="grid grid-2">${items}</div></section>${clubsSection}${nearbySection('周围商圈', '从红湘校区出发，逛街、吃饭和休闲都方便', 'shopping', 'distance')}${nearbySection('知名景点', '衡阳城市漫游与周末人文路线', 'attractions', 'distance')}${nearbySection('推荐店铺', '南华周边的学生美食地图', 'stores', 'location')}<section class="section campus-life-section">${sectionHead('游玩建议', '按时间和场景安排校园周边探索')}${sourceMeta(state.data.campus.source, state.data.site.reviewed, '经验整理')}<div class="campus-tip-grid">${tips}</div><p class="campus-life-note">${esc(nearby.note || '')}</p></section><section class="section">${sectionHead('校园建筑印象', '图片名称来自用户提供的视觉资源')}<div class="photo-grid"><figure class="photo-card"><img loading="lazy" src="assets/images/library.webp" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.webp" alt="南华大学南华楼"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园建筑夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.webp" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.webp" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-hongxiang.webp" alt="南华大学红湘校区正门"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>校区入口视觉资料</small></figcaption></figure></div></section>`;
 }
 function dormPoints(item) {
   if (Array.isArray(item.bullets) && item.bullets.length) return item.bullets;
@@ -449,7 +578,7 @@ function renderExtended(id) {
   if (id === 'job' && section.resumeChecklist) { renderJob(section); return; }
   if (id === 'errands' && section.computerPurchase) { renderErrands(section); return; }
   const items = section.items || [];
-  const mapBlock = id === 'map' ? `<section class="section">${sectionHead('两校区地图', '用户提供的视觉资源，路线和建筑以现场及官方更新为准')}<div class="map-grid"><figure class="photo-card map-card"><img src="assets/images/campus-map-hongxiang.jpg" alt="南华大学红湘校区平面图"><figcaption class="photo-caption"><strong>红湘校区平面图</strong><small>用于入校前熟悉区域；具体开放道路和报到点以当年通知为准</small></figcaption></figure><figure class="photo-card map-card"><img src="assets/images/campus-map-yumu.jpg" alt="南华大学雨母校区手绘地图"><figcaption class="photo-caption"><strong>雨母校区手绘地图</strong><small>用于入校前了解校区布局；现场指引可能随建设和管理调整</small></figcaption></figure></div></section>` : '';
+  const mapBlock = id === 'map' ? `<section class="section">${sectionHead('两校区地图', '用户提供的视觉资源，路线和建筑以现场及官方更新为准')}<div class="map-grid"><figure class="photo-card map-card"><img src="assets/images/campus-map-hongxiang.webp" alt="南华大学红湘校区平面图"><figcaption class="photo-caption"><strong>红湘校区平面图</strong><small>用于入校前熟悉区域；具体开放道路和报到点以当年通知为准</small></figcaption></figure><figure class="photo-card map-card"><img src="assets/images/campus-map-yumu.webp" alt="南华大学雨母校区手绘地图"><figcaption class="photo-caption"><strong>雨母校区手绘地图</strong><small>用于入校前了解校区布局；现场指引可能随建设和管理调整</small></figcaption></figure></div></section>` : '';
   const itemMarkup = items.map(item => {
     const points = Array.isArray(item.bullets) ? `<ul class="extended-points">${item.bullets.map(point => `<li>${esc(point)}</li>`).join('')}</ul>` : '';
     const questions = Array.isArray(item.questions) ? `<div class="training-questions">${item.questions.map(question => `<div class="training-question"><strong>${esc(question.q)}</strong><p>${esc(question.a)}</p></div>`).join('')}</div>` : '';
@@ -474,7 +603,59 @@ renderers.compete = renderCompete;
 renderers.resources = () => renderResources((state.data.extended?.sections || []).find(item => item.id === 'resources'));
 renderers.course = () => renderCourse((state.data.extended?.sections || []).find(item => item.id === 'course'));
 renderers.classCampaign = () => renderClassCampaign((state.data.extended?.sections || []).find(item => item.id === 'classCampaign'));
-function navigate(route, syncHash = true) { state.route = pageMeta(route).id; if (syncHash && window.location.hash !== `#${state.route}`) window.history.pushState(null, '', `#${state.route}`); document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${state.route}`)); $('#contact').classList.toggle('is-hidden', state.route !== 'home'); $('#thanks').classList.toggle('is-hidden', state.route !== 'home'); renderNav(); renderers[state.route](); bindRouteButtons($('#page-' + state.route)); if (state.route === 'home') window.__xiangnanScrollExpandRefresh?.(); $('#pageTitle').textContent = pageMeta(state.route).name; $('#pageSubtitle').textContent = pageMeta(state.route).sub; $('#topbar').classList.remove('nav-open'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function upsertMeta(key, value, attr = 'name') {
+  if (!value) return;
+  let node = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if (!node) {
+    node = document.createElement('meta');
+    node.setAttribute(attr, key);
+    document.head.appendChild(node);
+  }
+  node.setAttribute('content', value);
+}
+
+// 切换板块时同步更新标题与描述：原来全站共用一个 title，分享出去和加收藏都看不出是哪一页。
+function applyRouteMeta(meta) {
+  const isHome = meta.id === 'home';
+  document.title = isHome ? '相安南华 · 南华大学指导手册' : `${meta.name} · 相安南华 · 南华大学指导手册`;
+  const description = isHome
+    ? '相安南华：南华大学新生入学与校园生活指导手册，整理报到、宿舍、专业、资助、竞赛与成长路线。'
+    : `${meta.name}（${meta.sub}）· 相安南华 · 南华大学校园指导手册，内容整理自公开信息并标注来源，重要事项以学校通知为准。`;
+  upsertMeta('description', description);
+  upsertMeta('og:title', isHome ? '相安南华 · 南华大学指导手册' : `${meta.name} · 相安南华 · 南华大学指导手册`, 'property');
+  upsertMeta('og:description', description, 'property');
+  upsertMeta('og:image', new URL(HERO_IMAGE, document.baseURI).href, 'property');
+}
+
+async function navigate(route, syncHash = true) {
+  const meta = pageMeta(route);
+  state.route = meta.id;
+  if (syncHash && window.location.hash !== `#${state.route}`) window.history.pushState(null, '', `#${state.route}`);
+  document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${state.route}`));
+  $('#contact').classList.toggle('is-hidden', state.route !== 'home');
+  $('#thanks').classList.toggle('is-hidden', state.route !== 'home');
+  renderNav();
+  applyRouteMeta(meta);
+  $('#pageTitle').textContent = meta.name;
+  $('#pageSubtitle').textContent = meta.sub;
+  $('#topbar').classList.remove('nav-open');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const container = $('#page-' + state.route);
+  // 这一板块的数据还没到位时先放个占位，避免出现一片空白。
+  if (lazyNamesForRoute(state.route).some(name => !state.data[name])) {
+    container.innerHTML = '<div class="card info-card" role="status" aria-live="polite"><h2>正在加载…</h2><p>稍等一下，这一板块的内容正在读取。</p></div>';
+  }
+  try {
+    await ensureDataForRoute(state.route);
+  } catch (error) {
+    container.innerHTML = `<div class="card info-card"><h2>这一页暂时打不开</h2><p>可能是网络问题，检查后重试，或先回首页浏览其他板块。</p><p class="meta">${esc(error.message)}</p></div>`;
+    return;
+  }
+  renderers[state.route]();
+  bindRouteButtons(container);
+  applyImageHints(container);
+  if (state.route === 'home') window.__xiangnanScrollExpandRefresh?.();
+}
 function bindRouteButtons(root = document) { root.querySelectorAll('[data-route]').forEach(element => element.addEventListener('click', () => navigate(element.dataset.route))); }
 function openModal() { $('#modal').classList.add('open'); $('#overlay').classList.add('open'); document.body.style.overflow = 'hidden'; bindModalButtons(); }
 function closeModal() { $('#modal').classList.remove('open'); $('#overlay').classList.remove('open'); document.body.style.overflow = ''; }
@@ -487,24 +668,71 @@ function bindImageZoom(root = document) {
   root.querySelectorAll('[data-image-zoom]').forEach(button => button.addEventListener('click', () => openImageModal(button.dataset.imageSrc, button.dataset.imageAlt, button.dataset.imageCaption)));
 }
 
-function search(query) { const terms = query.toLowerCase().split(/\s+/).filter(Boolean); if (!terms.length) return []; const synonyms = { 宿舍: '寝室 床位 住宿', 报到: '入学 迎新', 资助: '助学金 贷款 费用', 专业: '学院 课程 方向', 电脑: '笔记本 台式机 售后', 竞赛: '比赛 报名 学科' }; const expanded = `${query} ${terms.map(term => synonyms[term] || '').join(' ')}`.toLowerCase(); return state.searchIndex.filter(item => state.searchFilter === '全部' || searchCategory(item.route) === state.searchFilter).map(item => ({ item, score: expanded.split(/\s+/).filter(term => term && item.text.toLowerCase().includes(term)).length })).filter(result => result.score).sort((a, b) => b.score - a.score).slice(0, 6).map(result => result.item); }
+// 只保留真正会改变搜索意图的近义词；「专业→学院/课程/方向」这类泛化词只会引入噪声。
+const SEARCH_SYNONYMS = { 宿舍: '寝室 床位 住宿', 报到: '入学 迎新', 资助: '助学金 贷款 学费', 电脑: '笔记本 台式机 售后', 医保: '医疗保险 报销', 军训: '军事训练' };
+// 虚词表：这些词几乎每篇内容里都有，命中它们不能说明"找对了"，只会把结果搅浑。
+const SEARCH_STOPWORDS = new Set(['的', '了', '是', '在', '有', '和', '与', '及', '我', '你', '他', '她', '它', '这', '那', '吗', '呢', '吧', '啊', '个', '都', '也', '就', '还', '会', '能', '去', '来', '们', '很', '最', '更', '不', '没', '把', '被', '让', '给', '对', '从', '到', '为', '以', '之', '其', '此', '些', '么', '呀', '哦', '嗯', '请', '想', '时候', '怎么', '什么', '哪些', '哪个', '可以', '如何', '应该', '是否', '需要', '多少', '怎样', '为什么', '一下', '这些', '那些', '哪里', '一个', '我们', '他们', '就是', '还是', '然后', '因为', '所以', '如果', '但是', '而且', '或者', '知道', '了解']);
+
+function search(query) {
+  const base = buildQueryTerms(query);
+  if (!base.length) return [];
+  const extra = base.map(term => SEARCH_SYNONYMS[term] || '').join(' ');
+  const raw = base.concat(buildQueryTerms(extra));
+  const meaningful = raw.filter(term => !SEARCH_STOPWORDS.has(term));
+  // 如果整句话全是虚词（例如只输入「怎么办」），就退回不过滤，至少给点结果。
+  const terms = [...new Set(meaningful.length ? meaningful : raw)];
+  const index = state.searchIndex;
+  const total = index.length || 1;
+  // 词越常见权重越低：「怎么」「级」这类词几乎每篇都有，不该决定排序；
+  // 「报销」「军训」这类稀有词才是真正有信息量的线索。同时命中词越长给分越高。
+  const weights = new Map();
+  terms.forEach(term => {
+    let df = 0;
+    for (const item of index) if (item.text.toLowerCase().includes(term)) df += 1;
+    weights.set(term, Math.log(1 + total / (1 + df)) * Math.min(term.length, 4));
+  });
+  return index
+    .filter(item => state.searchFilter === '全部' || searchCategory(item.route) === state.searchFilter)
+    .map(item => {
+      const hay = item.text.toLowerCase();
+      const title = String(item.title || '').toLowerCase();
+      const pageName = pageMeta(item.route).name.toLowerCase();
+      let score = 0;
+      terms.forEach(term => {
+        if (!hay.includes(term)) return;
+        const weight = weights.get(term);
+        score += weight;
+        if (title.includes(term)) score += weight;      // 命中标题更相关
+        if (pageName.includes(term)) score += weight;   // 命中板块名（如「宿舍」→宿舍攻略）更相关
+      });
+      return { item, score };
+    })
+    .filter(result => result.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map(result => result.item);
+}
 function renderSearchResults(query) { const box = $('#searchResults'); if (!query) { box.classList.remove('open'); return; } const results = search(query); const filters = ['全部', '入学', '校园', '学习', '升学就业', '其他'].map(filter => `<button type="button" class="search-filter ${state.searchFilter === filter ? 'active' : ''}" data-search-filter="${filter}">${filter}</button>`).join(''); box.innerHTML = `<div class="search-filter-row" aria-label="搜索分类筛选">${filters}</div>${results.length ? results.map((item, index) => `<button class="search-result" data-search-index="${index}"><strong>${esc(item.title)}<span>${esc(searchCategory(item.route))}</span></strong><small>${esc(item.text.slice(0, 62))}…</small></button>`).join('') : '<div class="search-result"><small>暂未找到匹配内容，试试“宿舍”“报到”“资助”或切换分类。</small></div>'}`; box.classList.add('open'); box.querySelectorAll('[data-search-filter]').forEach(button => button.addEventListener('click', () => { state.searchFilter = button.dataset.searchFilter; renderSearchResults(query); })); box.querySelectorAll('[data-search-index]').forEach(button => button.addEventListener('click', () => { const item = results[Number(button.dataset.searchIndex)]; $('#globalSearch').value = ''; box.classList.remove('open'); navigate(item.route); if (item.route === 'majors') { const major = state.data.majors.find(entry => entry.name === item.title); if (major) openMajor(major.name); } })); }
 
 function assistantMessage(text, user = false) { const body = $('#assistantBody'); const message = document.createElement('div'); message.className = `chat-message${user ? ' user' : ''}`; message.textContent = text; body.appendChild(message); body.scrollTop = body.scrollHeight; }
 function answerQuestion(query) { const results = search(query); if (!results.length) return '我还没在本站知识库里找到对应内容。建议查看学校官网，或换个关键词，例如“宿舍”“报到”“专业”“资助”。'; return `${results[0].title}：${results[0].text.slice(0, 150)}${results[0].text.length > 150 ? '…' : ''} 重要事项请以南华大学最新通知为准。`; }
 
 async function init() {
-  try { await loadData(); renderNav(); renderHome(); renderAbout(); renderMajors(); renderCampus(); renderDorm(); renderChecklist(); renderPolicies(); renderMedical(); renderFaq(); bindScrollExpand(); const initialRoute = location.hash.slice(1); navigate(pages.some(page => page.id === initialRoute) ? initialRoute : 'home', false); bindImageZoom($('#thanks')); } catch (error) { $('#content').innerHTML = `<div class="card info-card"><h2>页面暂时无法加载</h2><p>请通过本地静态服务器或 GitHub Pages 打开，直接双击 HTML 可能会阻止读取 JSON 数据。</p><p class="meta">${esc(error.message)}</p></div>`; }
+  try { await loadData(); renderNav(); renderHome(); renderAbout(); renderMajors(); renderCampus(); renderDorm(); renderChecklist(); renderPolicies(); renderMedical(); renderFaq(); bindScrollExpand(); const initialRoute = location.hash.slice(1); await navigate(pages.some(page => page.id === initialRoute) ? initialRoute : 'home', false); applyImageHints(document); bindImageZoom($('#thanks')); } catch (error) { $('#content').innerHTML = `<div class="card info-card"><h2>页面暂时无法加载</h2><p>请通过本地静态服务器或 GitHub Pages 打开，直接双击 HTML 可能会阻止读取 JSON 数据。</p><p class="meta">${esc(error.message)}</p></div>`; }
+  // 首屏已经画出来了，剩下的数据等浏览器空闲再取，不影响首屏速度。
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(prefetchRemainingData, { timeout: 3000 });
+  else window.setTimeout(prefetchRemainingData, 1500);
   $('#mobileHomeLink').addEventListener('click', () => navigate('home'));
   const syncHashRoute = () => { const route = location.hash.slice(1); if (pages.some(page => page.id === route) && route !== state.route) navigate(route, false); };
   window.addEventListener('hashchange', syncHashRoute);
   window.addEventListener('popstate', syncHashRoute);
+  $('#globalSearch').addEventListener('focus', prefetchRemainingData, { once: true });
   $('#globalSearch').addEventListener('input', event => renderSearchResults(event.target.value.trim()));
   $('#globalSearch').addEventListener('keydown', event => { if (event.key === 'Escape') { event.target.value = ''; $('#searchResults').classList.remove('open'); } });
   document.addEventListener('click', event => { if (!event.target.closest('.search-box')) $('#searchResults').classList.remove('open'); });
   $('#menuButton').addEventListener('click', () => $('#topbar').classList.toggle('nav-open'));
   $('#overlay').addEventListener('click', closeModal); $('#modal').addEventListener('click', event => { if (event.target.id === 'modal') closeModal(); }); document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
-  $('#assistantButton').addEventListener('click', () => { $('#assistant').classList.toggle('open'); if ($('#assistantBody').children.length === 0) assistantMessage('你好，我是小凯。可以问我南华大学的宿舍、报到、专业和资助信息。'); });
+  $('#assistantButton').addEventListener('click', () => { prefetchRemainingData(); $('#assistant').classList.toggle('open'); if ($('#assistantBody').children.length === 0) assistantMessage('你好，我是小凯。可以问我南华大学的宿舍、报到、专业和资助信息。'); });
   $('#assistantClose').addEventListener('click', () => $('#assistant').classList.remove('open'));
   $('#assistantForm').addEventListener('submit', event => { event.preventDefault(); const input = $('#assistantInput'); const query = input.value.trim(); if (!query) return; assistantMessage(query, true); assistantMessage(answerQuestion(query)); input.value = ''; });
   window.addEventListener('keydown', event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); $('#globalSearch').focus(); } });

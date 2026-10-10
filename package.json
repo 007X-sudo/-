@@ -1,0 +1,15 @@
+{
+  "name": "xiangnananhua",
+  "version": "1.0.0",
+  "private": true,
+  "description": "相安南华 · 南华大学校园指导手册（纯静态站）",
+  "scripts": {
+    "build": "node tools/minify.mjs",
+    "check": "node tools/e2e-check.mjs",
+    "images": "python tools/optimize-images.py",
+    "preview": "python -m http.server 4180"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

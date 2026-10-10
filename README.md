@@ -12,6 +12,46 @@ node -e "const http=require('http'),fs=require('fs'),path=require('path');const 
 
 打开 `http://localhost:4173/` 即可预览。GitHub Pages 可直接将仓库根目录设置为发布目录。
 
+## 构建与发布
+
+页面用的是 `styles.css` 和 `app.js`；线上实际加载的是压缩后的 `styles.min.css` 和 `app.min.js`。
+
+```bash
+npm install          # 只装一个 esbuild
+npm run build        # 压缩 CSS/JS，并改写 HTML 里的引用与 ?v=内容哈希
+```
+
+**⚠️ 每次改完 `styles.css` 或 `app.js`，提交前都要跑一次 `npm run build`**，
+否则线上用的还是上一次压缩出来的旧文件，改了等于没改。
+
+构建脚本做的事：压缩代码 → 计算内容哈希（如 `styles.min.css?v=cda3d196cb`）→ 改写 `index.html` / `404.html` 的引用。
+内容变了哈希才变，所以浏览器可以长期缓存这些文件，改版后又能立刻拿到新版本。
+
+顺带说明：
+- 图片已经全部转成 WebP 并等比缩小（4.8MB → 1.7MB）。原始大图仍可在 git 历史中找到，要重新处理就用 `python tools/optimize-images.py`（见下方脚本说明）。
+- 首屏只加载 9 个小 JSON；`extended.json`（约 52KB）和 `competitions.json`（约 78KB）在首屏渲染完后由浏览器空闲时间后台预取，进入对应板块时也会按需加载。所以刚打开的一两秒内搜索可能少一些结果，之后就覆盖全站。
+
+## 自检
+
+```bash
+npm run build
+python -m http.server 4180        # 另开一个终端
+node tools/e2e-check.mjs          # 真实浏览器跑一遍：报错、404、图片属性、搜索、懒加载、标题
+```
+
+## 目录说明
+
+| 路径 | 说明 |
+| --- | --- |
+| `index.html` / `404.html` | 页面骨架（引用压缩后的 CSS/JS） |
+| `styles.css` / `app.js` | **源文件，改这两个** |
+| `styles.min.css` / `app.min.js` | 构建产物，由 `npm run build` 生成 |
+| `data/*.json` | 全部内容数据 |
+| `assets/images/` | 图片（WebP 为主，二维码保留 PNG/JPG 以保证清晰度） |
+| `downloads/` | 供下载的公开 PDF / DOCX / XLSX |
+| `tools/` | 构建与自检脚本，部署时用不到，可以保留也可以删 |
+| `robots.txt` / `sitemap.xml` | 搜索引擎抓取用 |
+
 ## 内容维护
 
 - 学校简介：`data/site.json`
@@ -26,7 +66,8 @@ node -e "const http=require('http'),fs=require('fs'),path=require('path');const 
 - 学生医保：`data/medical.json`，整理 2026 年缴费标准、门诊/住院待遇和报销流程。
 - 公开资料下载：`downloads/`，仅包含已筛选的公开 PDF、DOCX 和 XLSX 文件副本；含联系人、账户信息或二维码等内部字段的资助通知原件不随公开站点部署。
 - 竞赛体系附件：`downloads/2023-competition-system.xlsx`，用于竞赛地图的分类、牵头学院和面向专业信息来源。
-- 视觉资源：`assets/images/`，包含用户提供的南华大学校徽、红湘/雨母校区正门、两校区地图、南华楼、图书馆、逸夫楼（教学楼）和操场图片。
+- 视觉资源：`assets/images/`，包含用户提供的南华大学校徽、红湘/雨母校区正门、两校区地图、南华楼、图书馆、逸夫楼（教学楼）和操场图片。全部转为 WebP 并等比缩小，二维码卡片保留 PNG、鸣谢二维码保留 JPG（扫码对清晰度敏感，不做有损转换）；站点图标由校徽裁剪生成 `favicon.png` / `apple-touch-icon.png`。
+- 图片处理脚本：`tools/optimize-images.py`，改图后重新运行，并把输出的尺寸同步到 `app.js` 里的 `IMAGE_META`（用于给 `<img>` 写 width/height，避免加载时页面跳动）。脚本需要原始大图作为输入，原图已从工作区删除但保留在 git 历史中。
 - 联系我：页面结尾展示作者碎碎念、用户提供的微信二维码和作者简历网站入口。
 - 首页开场：原生 CSS/JavaScript 实现 ScrollExpand 风格滚动展开动效，使用红湘校区正门图片，标题为“南国以南，花开于华”。
 

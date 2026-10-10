@@ -9,10 +9,13 @@
   <meta property="og:title" content="相安南华 · 南华大学指导手册">
   <meta property="og:description" content="南华大学新生报到、校园生活、学习资源与成长路线整理。">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://007x-sudo.github.io/-/assets/images/gate-hongxiang.webp">
   <title>相安南华 · 南华大学指导手册</title>
-  <link rel="icon" type="image/jpeg" href="assets/images/usc-emblem.jpg">
-  <link rel="apple-touch-icon" href="assets/images/usc-emblem.jpg">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+  <link rel="preload" as="image" href="assets/images/gate-hongxiang.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/nanhualou.webp">
+  <link rel="stylesheet" href="styles.min.css?v=817cda23da">
 </head>
 <body>
   <div class="site-shell">
@@ -25,12 +28,12 @@
         </button>
         <button class="mobile-home-link" id="mobileHomeLink" data-route="home" aria-label="返回首页">首页</button>
         <div class="page-heading"><span id="pageTitle">首页</span><small id="pageSubtitle">新生入学与校园生活速览</small></div>
-        <label class="search-box" for="globalSearch">
+        <div class="search-box" role="search">
           <span aria-hidden="true">⌕</span>
-          <input id="globalSearch" type="search" autocomplete="off" placeholder="搜索宿舍、专业、报到、资助…">
+          <input id="globalSearch" type="search" autocomplete="off" aria-label="站内搜索" placeholder="搜索宿舍、专业、报到、资助…">
           <kbd>⌘ K</kbd>
           <div class="search-results" id="searchResults" role="status" aria-live="polite"></div>
-        </label>
+        </div>
       </div>
       <nav class="primary-nav" id="primaryNav" aria-label="主要导航"></nav>
     </header>
@@ -121,6 +124,6 @@
     <div class="assistant-note">本地检索模式 · 重要信息以官方通知为准</div>
   </aside>
 
-  <script src="app.js" defer></script>
+  <script src="app.min.js?v=10d9e6cc05" defer></script>
 </body>
 </html>
