@@ -39,7 +39,8 @@ const profile = mkdtempSync(path.join(tmpdir(), 'e2e-'));
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const child = spawn(BROWSER, [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--disable-extensions',
+  '--headless=new', '--disable-gpu', '--no-first-run', '--disable-extensions', '--disable-sync',
+  '--no-default-browser-check', '--disable-features=EdgeSyncConsent',
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--window-size=1440,900', URL_BASE
 ], { stdio: 'ignore' });
@@ -48,7 +49,12 @@ async function findTarget() {
   for (let i = 0; i < 40; i += 1) {
     try {
       const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      const page = list.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
+      // 注意：浏览器可能同时暴露多个 page 目标（例如 edge://sync-confirmation-dialog/），
+      // 抓到它的话页面是空的，所有断言都会莫名其妙失败。必须挑出真正的站点页面。
+      const isSite = (t) => t.type === 'page' && t.webSocketDebuggerUrl && t.url.startsWith(URL_BASE);
+      const notInternal = (t) => t.type === 'page' && t.webSocketDebuggerUrl
+        && !/^(edge|chrome|about|devtools|data):/.test(t.url);
+      const page = list.find(isSite) || list.find(notInternal);
       if (page) return page;
     } catch (error) { /* 浏览器还没起来 */ }
     await sleep(300);
