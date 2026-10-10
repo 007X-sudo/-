@@ -27,34 +27,47 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH = os.path.join(ROOT, "styles.css")
 
 START_MARK = "/* ===== 深色模式（由 tools/gen-dark-mode.py 生成，勿手改）===== */"
+END_MARK = "/* ===== 深色模式结束 ===== */"
 
-DARK_ROOT = """@media (prefers-color-scheme: dark) {
-  /* 跟随系统偏好自动切换。若要手动开关，改成 :root[data-theme="dark"] 即可。 */
-  :root {
-    color-scheme: dark;
-    --paper: #14181a;
-    --card: #1e2427;
-    --competition-card: #1e2427;
-    --ink: #e7ecec;
-    --muted: #9dabae;
-    --faint: #8c9a9d;
-    --line: #2c3538;
-    --coral-soft: #2a211c;
-    --navy-deep: #0f1416;
-    --shadow: 0 12px 34px rgba(0, 0, 0, .5);
-    /* 填充色：深色底上略微提亮，让选中态药丸、头像底仍有存在感 */
-    --navy: #21586a;
-    --teal: #1f7a78;   /* 保持原值：白字压在它上面才够清晰（提亮后对比度会降到 3.9） */
-    --coral: #e36c4c;
-    /* 文字色 */
-    --navy-text: #dbe7ec;
-    --teal-text: #5fc9bd;
-    --coral-text: #f2907a;
-    /* 描边色 */
-    --navy-line: #3d5866;
-    --teal-line: rgba(95, 201, 189, .45);
-    --coral-line: rgba(242, 144, 122, .42);
-  }
+# 深色块挂在 <html data-theme="dark"> 上，而不是 @media (prefers-color-scheme: dark)。
+# 原因：要支持「默认跟随系统 + 用户手动覆盖」，用媒体查询就得把整套规则写两份
+# （一份给自动、一份给显式 data-theme），属性选择器只要一份。
+# 系统偏好的判断与初始写入在 index.html 头部的一小段同步脚本里完成。
+#
+# 组件规则的前缀必须用 :where() 包住 —— :where() 的特异性为 0，于是
+# `:where(:root[data-theme=dark]) .card` 的特异性与原来的 `.card` 完全相同，
+# 级联结果跟旧的 @media 版本逐条等价。若直接用 `:root[data-theme=dark] .card`，
+# 特异性会从 (0,1,0) 升到 (0,2,1)，深色规则会抢走本该由其他规则生效的样式
+# （实测会改动 15 处元素的计算样式）。
+# 变量块则相反，必须保留 :root[data-theme="dark"] 的高特异性才能压过基础 :root。
+DARK_PREFIX = ':where(:root[data-theme="dark"])'
+
+DARK_ROOT = """:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* 深色变量。默认跟随系统偏好，用户点顶栏的切换按钮后以手动选择为准。 */
+  --paper: #14181a;
+  --card: #1e2427;
+  --competition-card: #1e2427;
+  --ink: #e7ecec;
+  --muted: #9dabae;
+  --faint: #8c9a9d;
+  --line: #2c3538;
+  --coral-soft: #2a211c;
+  --navy-deep: #0f1416;
+  --shadow: 0 12px 34px rgba(0, 0, 0, .5);
+  /* 填充色：深色底上略微提亮，让选中态药丸、头像底仍有存在感 */
+  --navy: #21586a;
+  --teal: #1f7a78;   /* 保持原值：白字压在它上面才够清晰（提亮后对比度会降到 3.9） */
+  --coral: #e36c4c;
+  /* 文字色 */
+  --navy-text: #dbe7ec;
+  --teal-text: #5fc9bd;
+  --coral-text: #f2907a;
+  /* 描边色 */
+  --navy-line: #3d5866;
+  --teal-line: rgba(95, 201, 189, .45);
+  --coral-line: rgba(242, 144, 122, .42);
+}
 """
 
 # ---------------------------------------------------------------- 工具
@@ -155,21 +168,33 @@ LIGHT_VARS = (
 )
 
 
+def prefixed(selector_list):
+    """给选择器列表里的每一项都加上深色前缀（:where(...)，特异性和原来一样）。
+
+    必须按逗号拆开逐个加：`A, B { }` 只在最前面拼一次前缀会写成
+    `:where(:root[data-theme=dark]) A, B { }`，B 就变成**无条件生效**了 ——
+    浅色模式下会套用深色样式。用 @media 包住时看不出这个问题，
+    改成属性选择器后就会暴露（实测有 162 处元素受影响）。
+    """
+    parts = [p.strip() for p in selector_list.split(",")]
+    return ", ".join(f"{DARK_PREFIX} {p}" for p in parts if p)
+
+
 def strip_existing_dark(css):
-    """删掉所有已生成的深色块（重复运行或历史遗留都必须清干净）"""
+    """删掉所有已生成的深色块（重复运行或历史遗留都必须清干净）
+
+    块内不再是一个大括号包住的整体（属性选择器在前、组件规则在后是并列的），
+    所以不能靠数括号找结尾，改用结束标记定位。
+    """
     while True:
         i = css.find(START_MARK)
         if i == -1:
             return css
-        j = css.find("{", i)
-        depth, k = 1, j + 1
-        while k < len(css) and depth:
-            if css[k] == "{":
-                depth += 1
-            elif css[k] == "}":
-                depth -= 1
-            k += 1
-        css = css[:i].rstrip("\n") + "\n"
+        j = css.find(END_MARK, i)
+        if j == -1:
+            # 兼容早期没有结束标记的版本：那次生成是追加在文件末尾的
+            return css[:i].rstrip("\n") + "\n"
+        css = css[:i].rstrip("\n") + "\n" + css[j + len(END_MARK):].lstrip("\n")
 
 
 def split_variables(css, stats):
@@ -268,7 +293,7 @@ def build_block(css):
                 h, s, l = to_hsl(c)
                 if l >= 0.80:
                     overrides[selector][prop] = tinted_surface(h, s, l)
-    lines = [f"  {sel} {{ " + " ".join(f"{p}: {v};" for p, v in sorted(d.items())) + " }"
+    lines = [f"{prefixed(sel)} {{ " + " ".join(f"{p}: {v};" for p, v in sorted(d.items())) + " }"
              for sel, d in sorted(overrides.items())]
     return "\n".join(lines), len(overrides), sum(len(v) for v in overrides.values())
 
@@ -282,8 +307,9 @@ def main():
     css = split_variables(css, stats)
     css = ensure_light_vars(css)
     body, n_rules, n_decls = build_block(css)
-    block = (START_MARK + "\n" + DARK_ROOT + "\n" +
-             "  /* ↓↓↓ 以下为硬编码颜色的深色映射 ↓↓↓ */\n" + body + "\n}\n")
+    block = (START_MARK + "\n" + DARK_ROOT + "\n"
+             + "/* ↓↓↓ 以下为硬编码颜色的深色映射 ↓↓↓ */\n" + body + "\n"
+             + END_MARK + "\n")
     css = css.rstrip("\n") + "\n\n" + block
     io.open(PATH, "w", encoding="utf-8", newline="\n").write(css)
     print("变量拆分：", dict(stats) or "（本次无需拆分）")

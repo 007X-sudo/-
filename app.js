@@ -731,6 +731,28 @@ async function init() {
   $('#globalSearch').addEventListener('keydown', event => { if (event.key === 'Escape') { event.target.value = ''; $('#searchResults').classList.remove('open'); } });
   document.addEventListener('click', event => { if (!event.target.closest('.search-box')) $('#searchResults').classList.remove('open'); });
   $('#menuButton').addEventListener('click', () => $('#topbar').classList.toggle('nav-open'));
+  // 深色模式切换：初始值由 index.html 头部的同步脚本按系统偏好写入 data-theme；
+  // 用户手动切过之后写入 localStorage，此后以手动选择为准，不再跟随系统。
+  const themeToggle = $('#themeToggle');
+  if (themeToggle) {
+    const systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const storedTheme = () => { try { return localStorage.getItem('theme'); } catch (error) { return null; } };
+    const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
+    const syncThemeButton = () => {
+      const dark = isDarkTheme();
+      themeToggle.setAttribute('aria-pressed', String(dark));
+      themeToggle.setAttribute('aria-label', dark ? '切换到浅色模式' : '切换到深色模式');
+      themeToggle.title = dark ? '切换到浅色模式' : '切换到深色模式';
+    };
+    const setTheme = (theme, persist) => {
+      document.documentElement.setAttribute('data-theme', theme);
+      if (persist) { try { localStorage.setItem('theme', theme); } catch (error) { /* 无痕模式下可能写不进去 */ } }
+      syncThemeButton();
+    };
+    themeToggle.addEventListener('click', () => setTheme(isDarkTheme() ? 'light' : 'dark', true));
+    if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', event => { if (!storedTheme()) setTheme(event.matches ? 'dark' : 'light', false); });
+    syncThemeButton();
+  }
   $('#overlay').addEventListener('click', closeModal); $('#modal').addEventListener('click', event => { if (event.target.id === 'modal') closeModal(); }); document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
   $('#assistantButton').addEventListener('click', () => { prefetchRemainingData(); $('#assistant').classList.toggle('open'); if ($('#assistantBody').children.length === 0) assistantMessage('你好，我是小凯。可以问我南华大学的宿舍、报到、专业和资助信息。'); });
   $('#assistantClose').addEventListener('click', () => $('#assistant').classList.remove('open'));

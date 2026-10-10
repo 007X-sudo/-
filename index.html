@@ -15,7 +15,21 @@
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="preload" as="image" href="assets/images/gate-hongxiang.webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/images/nanhualou.webp">
-  <link rel="stylesheet" href="styles.min.css?v=e222395775">
+  <script>
+    /* 深色模式：默认跟随系统偏好，用户在顶栏手动切过之后以其选择为准。
+       必须在这里同步执行，否则样式表生效前会先闪一下浅色。 */
+    (function () {
+      try {
+        var stored = localStorage.getItem('theme');
+        var dark = stored ? stored === 'dark'
+          : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } catch (error) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.min.css?v=cbad8f1d19">
 </head>
 <body>
   <div class="site-shell">
@@ -34,6 +48,10 @@
           <kbd>⌘ K</kbd>
           <div class="search-results" id="searchResults" role="status" aria-live="polite"></div>
         </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换到深色模式" aria-pressed="false">
+          <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.1"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.4 5.4l1.7 1.7M16.9 16.9l1.7 1.7M18.6 5.4l-1.7 1.7M7.1 16.9l-1.7 1.7"></path></svg>
+          <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.3 14.7A8.6 8.6 0 0 1 9.3 3.7a8.6 8.6 0 1 0 11 11z"></path></svg>
+        </button>
       </div>
       <nav class="primary-nav" id="primaryNav" aria-label="主要导航"></nav>
     </header>
@@ -127,6 +145,6 @@
     <div class="assistant-note">本地检索模式 · 重要信息以官方通知为准</div>
   </aside>
 
-  <script src="app.min.js?v=75d7f42814" defer></script>
+  <script src="app.min.js?v=66f0abf611" defer></script>
 </body>
 </html>

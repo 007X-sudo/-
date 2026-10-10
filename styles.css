@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --ink: #18323b;
   --muted: #6c7a7e;
   --faint: #94a1a3;
@@ -63,6 +64,14 @@ button { border: 0; cursor: pointer; color: inherit; }
 .mobile-home-link { display: none; }
 .icon-button { width: 34px; height: 34px; display: grid; place-items: center; background: transparent; border-radius: 8px; font-size: 22px; }
 .icon-button:hover { background: #edf2f0; }
+/* 深色模式切换按钮（顶栏最右）。图标随 <html data-theme> 切换：
+   深色模式显示月亮，浅色模式显示太阳。 */
+.theme-toggle { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--navy-text); background: transparent; }
+.theme-toggle:hover { background: #edf2f0; border-color: var(--teal-line); }
+.theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.theme-icon-moon { display: none; }
+:root[data-theme="dark"] .theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-moon { display: block; }
 .content { max-width: 1280px; min-height: calc(100vh - 170px); margin: 0 auto; padding: 34px 28px 50px; }
 .page { display: none; animation: rise .25s ease; }
 .page.active { display: block; }
@@ -555,7 +564,10 @@ button { border: 0; cursor: pointer; color: inherit; }
   .mobile-home-link { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 5px 9px; border: 1px solid #c9ded9; border-radius: 8px; color: var(--teal-text); background: #f1f8f5; font-size: 12px; font-weight: 700; white-space: nowrap; }
   .section-head .section-home-link { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 30px; margin-left: auto; padding: 5px 9px; border: 1px solid #c9ded9; border-radius: 8px; color: var(--teal-text); background: #f1f8f5; font-size: 12px; font-weight: 700; white-space: nowrap; }
   .page-heading { display: none; }
-  .search-box { width: auto; flex: 1; }
+  /* 顶栏多了深色模式切换按钮，窄屏放不下时允许搜索框被压缩。
+     .search-box 和里面的 <input> 都需要 min-width:0，否则会被 min-content 卡住。 */
+  .search-box { width: auto; flex: 1; min-width: 0; }
+  .search-box input { min-width: 0; }
   .primary-nav { position: absolute; left: 0; top: 100%; width: min(290px, 85vw); height: calc(100vh - 69px); max-height: calc(100dvh - 69px); display: block; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 15px; background: var(--card); box-shadow: 15px 20px 35px rgba(8,43,55,.12); transform: translateX(-105%); transition: transform .2s ease; }
   .topbar.nav-open .primary-nav { transform: translateX(0); }
   .nav-item { display: block; width: 100%; text-align: left; margin-bottom: 3px; }
@@ -679,6 +691,10 @@ button { border: 0; cursor: pointer; color: inherit; }
   .career-faq-answer { padding: 0 15px 15px 48px; }
   .career-job-step { padding: 17px 16px; }
 }
+/* 320~360px 这类极窄屏，顶栏子元素太多，间距再收一点给深色模式切换按钮留位置。 */
+@media (max-width: 360px) {
+  .topbar-main { gap: 8px; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .page, .entry-card, .button, .action-button, .newcomer-step { animation: none; transition: none; }
@@ -777,164 +793,164 @@ img { max-width: 100%; height: auto; }
 }
 
 /* ===== 深色模式（由 tools/gen-dark-mode.py 生成，勿手改）===== */
-@media (prefers-color-scheme: dark) {
-  /* 跟随系统偏好自动切换。若要手动开关，改成 :root[data-theme="dark"] 即可。 */
-  :root {
-    color-scheme: dark;
-    --paper: #14181a;
-    --card: #1e2427;
-    --competition-card: #1e2427;
-    --ink: #e7ecec;
-    --muted: #9dabae;
-    --faint: #8c9a9d;
-    --line: #2c3538;
-    --coral-soft: #2a211c;
-    --navy-deep: #0f1416;
-    --shadow: 0 12px 34px rgba(0, 0, 0, .5);
-    /* 填充色：深色底上略微提亮，让选中态药丸、头像底仍有存在感 */
-    --navy: #21586a;
-    --teal: #1f7a78;   /* 保持原值：白字压在它上面才够清晰（提亮后对比度会降到 3.9） */
-    --coral: #e36c4c;
-    /* 文字色 */
-    --navy-text: #dbe7ec;
-    --teal-text: #5fc9bd;
-    --coral-text: #f2907a;
-    /* 描边色 */
-    --navy-line: #3d5866;
-    --teal-line: rgba(95, 201, 189, .45);
-    --coral-line: rgba(242, 144, 122, .42);
-  }
-
-  /* ↓↓↓ 以下为硬编码颜色的深色映射 ↓↓↓ */
-  .action-button { background: #16292a; border: 1px solid #333d40; }
-  .aid-award { border-bottom: 1px dashed #333d40; }
-  .aid-award h4 strong { color: #f2907a; }
-  .aid-list-card { background: #1e2427; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
-  .aid-list-card strong { color: #c2ccce; }
-  .aid-panel { background: #1e2427; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
-  .aid-tl-node { background: #16292a; }
-  .assistant { box-shadow: 0 24px 65px rgba(0,0,0,0.44); }
-  .assistant-body { background: #1a2023; }
-  .brand-mark { box-shadow: 0 5px 16px rgba(0,0,0,0.484); }
-  .campus-activity-card { background: #1a2023; border: 1px solid #333d40; }
-  .campus-activity-join { background: #16292a; border: 1px dashed #333d40; }
-  .campus-activity-lead { background: #2a211c; }
-  .campus-life-card { background: #1e2427; border: 1px solid #333d40; }
-  .campus-tip-card { background: #2a211c; border: 1px solid #333d40; }
-  .card-link-icon { background: #1b2f2e; }
-  .card-link:hover { border-color: #333d40; }
-  .career-faq-icon { color: #f2907a; }
-  .career-faq-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
-  .career-job-step { background: #16292a; border: 1px solid #333d40; }
-  .career-path-card header span, .career-resume-card header span { background: #1b2f2e; }
-  .career-path-card, .career-resume-card, .career-info-card { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
-  .career-roadmap-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
-  .career-roadmap-number { border: 4px solid #333d40; }
-  .career-roadmap::before { background: #1b2f2e; }
-  .chat-message { background: #1b2f2e; }
-  .check-group h3 { background: #16292a; }
-  .check-item { border-bottom: 1px solid #333d40; }
-  .check-progress { background: #1b2f2e; }
-  .check-summary { background: #16292a; border: 1px solid #333d40; }
-  .chip { background: #1e2427; }
-  .class-role-card { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
-  .class-role-card header span { background: #1b2f2e; }
-  .competition-card { box-shadow: 0 5px 16px rgba(0,0,0,0.077); }
-  .competition-card dl { border-top: 1px dashed #333d40; }
-  .competition-category-icon { background: #1b2f2e; border: 1px solid #333d40; }
-  .competition-empty { background: #1e2427; }
-  .competition-filter-chip { background: #1e2427; }
-  .competition-page { --competition-card: #1e2427; }
-  .competition-search input, .competition-toolbar select { background: #1e2427; }
-  .computer-advantage-card { background: #1e2427; border: 1px solid #333d40; }
-  .computer-contact-card { background: #16292a; border: 1px solid #333d40; }
-  .computer-contact-card img { background: #1e2427; }
-  .computer-image-button { background: #16292a; }
-  .computer-image-card { background: #1e2427; }
-  .computer-image-card img { background: #16292a; }
-  .computer-intro { background: #16292a; }
-  .contact-avatar { box-shadow: 0 7px 18px rgba(0,0,0,0.396); }
-  .contact-card { background: rgba(29,35,38,.76); }
-  .contact-inner { background: #16292a; border: 1px solid #333d40; }
-  .contact-link { background: #1b2f2e; }
-  .contact-link.pending { background: #171c1f; }
-  .contact-qr-note { background: #1b2f2e; }
-  .content-status { background: #1b2f2e; }
-  .content-status.source-status-experience { background: #2d2620; border-color: #333d40; color: #d9a25a; }
-  .content-status.source-status-merchant { background: #2d2620; border-color: #333d40; color: #e0b972; }
-  .content-status.source-status-official { background: #1b2f2e; border-color: #333d40; color: #5fc9bd; }
-  .course-credit-card { background: #16292a; border: 1px solid #333d40; }
-  .course-elective-card { background: #1e2427; }
-  .course-elective-card span { background: rgba(29,35,38,.75); }
-  .course-elective-card.course-black { background: #16292a; border-color: #333d40; }
-  .course-elective-card.course-red { background: #2a211c; border-color: #333d40; }
-  .course-faq-item { background: #1e2427; }
-  .course-page { --course-green: #1b2f2e; --course-warm: #2a211c; }
-  .course-pitfall-card { background: #16292a; border: 1px solid #333d40; }
-  .course-round-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 6px 17px rgba(0,0,0,0.088); }
-  .course-tip-card { background: #1e2427; border: 1px solid #333d40; }
-  .dorm-card:hover { border-color: #333d40; }
-  .dorm-card:nth-child(3n) .dorm-sticker { background: #16292a; border-color: #333d40; }
-  .dorm-step-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 8px 20px rgba(0,0,0,0.154); }
-  .dorm-step-number { border: 4px solid #333d40; }
-  .dorm-sticker { background: #2a211c; border: 1px solid #333d40; color: #f2907a; }
-  .download-button { background: #2a211c; border-color: #333d40; color: #f2907a; }
-  .entry-card:hover { border-color: #333d40; }
-  .entry-icon { background: #2a211c; border: 1px solid #333d40; }
-  .filter-bar input, .filter-bar select { background: #1e2427; }
-  .hero { box-shadow: 0 22px 54px rgba(0,0,0,0.484); }
-  .icon-button:hover { background: #1b2f2e; }
-  .image-modal-body img { background: #16292a; }
-  .level-a { background: #2a211c; color: #f2907a; }
-  .level-b { background: #1b2f2e; color: #5fc9bd; }
-  .level-c { background: #171c1f; color: #c2ccce; }
-  .major-card:hover { border-color: #333d40; }
-  .mobile-home-link { background: #16292a; border: 1px solid #333d40; }
-  .modal-card { box-shadow: 0 25px 70px rgba(0,0,0,0.65); }
-  .nav-icon { background: #16292a; border: 1px solid #333d40; }
-  .nav-item:hover { background: #1b2f2e; }
-  .newcomer-step { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 7px 18px rgba(0,0,0,0.088); }
-  .not-found-mark { border: 1px solid #333d40; box-shadow: 0 14px 30px rgba(0,0,0,0.264); }
-  .not-found-page { background: #2a211c; }
-  .notice { background: #1b2f2e; color: #5fc9bd; }
-  .notice.warn { background: #2a211c; color: #f2907a; }
-  .photo-card { box-shadow: 0 5px 17px rgba(0,0,0,0.077); }
-  .photo-card.map-card img { background: #1b2f2e; }
-  .plan-summary > div { background: #16292a; }
-  .primary-nav { box-shadow: 15px 20px 35px rgba(0,0,0,0.264); }
-  .resource-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 5px 16px rgba(0,0,0,0.077); }
-  .resource-card-title span { background: #1b2f2e; }
-  .resource-quick-card { background: #16292a; border: 1px solid #333d40; }
-  .resource-quick-card:hover { border-color: #333d40; }
-  .search-box input { background: #1e2427; }
-  .search-filter { background: #16292a; }
-  .search-filter-row { border-bottom: 1px solid #333d40; }
-  .search-result { border-bottom: 1px solid #333d40; }
-  .search-result strong span { background: #1b2f2e; }
-  .search-result:hover { background: #16292a; }
-  .section-head .section-home-link { background: #16292a; border: 1px solid #333d40; }
-  .section-head .section-link { background: #16292a; border: 1px solid #333d40; }
-  .section-icon { background: #16292a; border: 1px solid #333d40; }
-  .stat-card, .card, .entry-card { box-shadow: 0 5px 17px rgba(0,0,0,0.077); }
-  .tag { background: #1b2f2e; }
-  .thanks-card { background: rgba(29,35,38,.72); }
-  .thanks-image { background: #1e2427; }
-  .thanks-inner { background: #2a211c; border: 1px solid #333d40; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
-  .to-top { background: rgba(29,35,38,.94); box-shadow: 0 10px 24px rgba(0,0,0,0.308); }
-  .to-top:hover { border-color: #333d40; }
-  .topbar { background: rgba(29,35,38,.93); }
-  .training-basic { background: #1e2427; }
-  .training-card:nth-child(3n) .training-sticker { background: #1b2f2e; }
-  .training-discipline-card li { border-bottom: 1px dashed #333d40; }
-  .training-equip-card header span { background: #2a211c; color: #f2907a; }
-  .training-equip-card, .training-discipline-card { background: #1e2427; box-shadow: 0 7px 20px rgba(0,0,0,0.11); }
-  .training-equip-card:first-child header span, .training-equip-card:nth-child(2) header span { background: #2d2620; color: #f2907a; }
-  .training-equip-item { border-bottom: 1px dashed #333d40; }
-  .training-faq-icon { color: #f2907a; }
-  .training-faq-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
-  .training-question { background: #1a2023; }
-  .training-sticker { background: #2a211c; color: #f2907a; }
-  .training-tip { background: #2a211c; border: 1px solid #333d40; color: #f2907a; }
-  .tuition-tag { background: #2a211c; color: #f2907a; }
-  .wechat-qr { background: #1e2427; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* 深色变量。默认跟随系统偏好，用户点顶栏的切换按钮后以手动选择为准。 */
+  --paper: #14181a;
+  --card: #1e2427;
+  --competition-card: #1e2427;
+  --ink: #e7ecec;
+  --muted: #9dabae;
+  --faint: #8c9a9d;
+  --line: #2c3538;
+  --coral-soft: #2a211c;
+  --navy-deep: #0f1416;
+  --shadow: 0 12px 34px rgba(0, 0, 0, .5);
+  /* 填充色：深色底上略微提亮，让选中态药丸、头像底仍有存在感 */
+  --navy: #21586a;
+  --teal: #1f7a78;   /* 保持原值：白字压在它上面才够清晰（提亮后对比度会降到 3.9） */
+  --coral: #e36c4c;
+  /* 文字色 */
+  --navy-text: #dbe7ec;
+  --teal-text: #5fc9bd;
+  --coral-text: #f2907a;
+  /* 描边色 */
+  --navy-line: #3d5866;
+  --teal-line: rgba(95, 201, 189, .45);
+  --coral-line: rgba(242, 144, 122, .42);
 }
+
+/* ↓↓↓ 以下为硬编码颜色的深色映射 ↓↓↓ */
+:where(:root[data-theme="dark"]) .action-button { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .aid-award { border-bottom: 1px dashed #333d40; }
+:where(:root[data-theme="dark"]) .aid-award h4 strong { color: #f2907a; }
+:where(:root[data-theme="dark"]) .aid-list-card { background: #1e2427; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
+:where(:root[data-theme="dark"]) .aid-list-card strong { color: #c2ccce; }
+:where(:root[data-theme="dark"]) .aid-panel { background: #1e2427; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
+:where(:root[data-theme="dark"]) .aid-tl-node { background: #16292a; }
+:where(:root[data-theme="dark"]) .assistant { box-shadow: 0 24px 65px rgba(0,0,0,0.44); }
+:where(:root[data-theme="dark"]) .assistant-body { background: #1a2023; }
+:where(:root[data-theme="dark"]) .brand-mark { box-shadow: 0 5px 16px rgba(0,0,0,0.484); }
+:where(:root[data-theme="dark"]) .campus-activity-card { background: #1a2023; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .campus-activity-join { background: #16292a; border: 1px dashed #333d40; }
+:where(:root[data-theme="dark"]) .campus-activity-lead { background: #2a211c; }
+:where(:root[data-theme="dark"]) .campus-life-card { background: #1e2427; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .campus-tip-card { background: #2a211c; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .card-link-icon { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .card-link:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .career-faq-icon { color: #f2907a; }
+:where(:root[data-theme="dark"]) .career-faq-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
+:where(:root[data-theme="dark"]) .career-job-step { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .career-path-card header span, :where(:root[data-theme="dark"]) .career-resume-card header span { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .career-path-card, :where(:root[data-theme="dark"]) .career-resume-card, :where(:root[data-theme="dark"]) .career-info-card { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
+:where(:root[data-theme="dark"]) .career-roadmap-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
+:where(:root[data-theme="dark"]) .career-roadmap-number { border: 4px solid #333d40; }
+:where(:root[data-theme="dark"]) .career-roadmap::before { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .chat-message { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .check-group h3 { background: #16292a; }
+:where(:root[data-theme="dark"]) .check-item { border-bottom: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .check-progress { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .check-summary { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .chip { background: #1e2427; }
+:where(:root[data-theme="dark"]) .class-role-card { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
+:where(:root[data-theme="dark"]) .class-role-card header span { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .competition-card { box-shadow: 0 5px 16px rgba(0,0,0,0.077); }
+:where(:root[data-theme="dark"]) .competition-card dl { border-top: 1px dashed #333d40; }
+:where(:root[data-theme="dark"]) .competition-category-icon { background: #1b2f2e; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .competition-empty { background: #1e2427; }
+:where(:root[data-theme="dark"]) .competition-filter-chip { background: #1e2427; }
+:where(:root[data-theme="dark"]) .competition-page { --competition-card: #1e2427; }
+:where(:root[data-theme="dark"]) .competition-search input, :where(:root[data-theme="dark"]) .competition-toolbar select { background: #1e2427; }
+:where(:root[data-theme="dark"]) .computer-advantage-card { background: #1e2427; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .computer-contact-card { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .computer-contact-card img { background: #1e2427; }
+:where(:root[data-theme="dark"]) .computer-image-button { background: #16292a; }
+:where(:root[data-theme="dark"]) .computer-image-card { background: #1e2427; }
+:where(:root[data-theme="dark"]) .computer-image-card img { background: #16292a; }
+:where(:root[data-theme="dark"]) .computer-intro { background: #16292a; }
+:where(:root[data-theme="dark"]) .contact-avatar { box-shadow: 0 7px 18px rgba(0,0,0,0.396); }
+:where(:root[data-theme="dark"]) .contact-card { background: rgba(29,35,38,.76); }
+:where(:root[data-theme="dark"]) .contact-inner { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .contact-link { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .contact-link.pending { background: #171c1f; }
+:where(:root[data-theme="dark"]) .contact-qr-note { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .content-status { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .content-status.source-status-experience { background: #2d2620; border-color: #333d40; color: #d9a25a; }
+:where(:root[data-theme="dark"]) .content-status.source-status-merchant { background: #2d2620; border-color: #333d40; color: #e0b972; }
+:where(:root[data-theme="dark"]) .content-status.source-status-official { background: #1b2f2e; border-color: #333d40; color: #5fc9bd; }
+:where(:root[data-theme="dark"]) .course-credit-card { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .course-elective-card { background: #1e2427; }
+:where(:root[data-theme="dark"]) .course-elective-card span { background: rgba(29,35,38,.75); }
+:where(:root[data-theme="dark"]) .course-elective-card.course-black { background: #16292a; border-color: #333d40; }
+:where(:root[data-theme="dark"]) .course-elective-card.course-red { background: #2a211c; border-color: #333d40; }
+:where(:root[data-theme="dark"]) .course-faq-item { background: #1e2427; }
+:where(:root[data-theme="dark"]) .course-page { --course-green: #1b2f2e; --course-warm: #2a211c; }
+:where(:root[data-theme="dark"]) .course-pitfall-card { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .course-round-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 6px 17px rgba(0,0,0,0.088); }
+:where(:root[data-theme="dark"]) .course-tip-card { background: #1e2427; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .dorm-card:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .dorm-card:nth-child(3n) .dorm-sticker { background: #16292a; border-color: #333d40; }
+:where(:root[data-theme="dark"]) .dorm-step-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 8px 20px rgba(0,0,0,0.154); }
+:where(:root[data-theme="dark"]) .dorm-step-number { border: 4px solid #333d40; }
+:where(:root[data-theme="dark"]) .dorm-sticker { background: #2a211c; border: 1px solid #333d40; color: #f2907a; }
+:where(:root[data-theme="dark"]) .download-button { background: #2a211c; border-color: #333d40; color: #f2907a; }
+:where(:root[data-theme="dark"]) .entry-card:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .entry-icon { background: #2a211c; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .filter-bar input, :where(:root[data-theme="dark"]) .filter-bar select { background: #1e2427; }
+:where(:root[data-theme="dark"]) .hero { box-shadow: 0 22px 54px rgba(0,0,0,0.484); }
+:where(:root[data-theme="dark"]) .icon-button:hover { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .image-modal-body img { background: #16292a; }
+:where(:root[data-theme="dark"]) .level-a { background: #2a211c; color: #f2907a; }
+:where(:root[data-theme="dark"]) .level-b { background: #1b2f2e; color: #5fc9bd; }
+:where(:root[data-theme="dark"]) .level-c { background: #171c1f; color: #c2ccce; }
+:where(:root[data-theme="dark"]) .major-card:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .mobile-home-link { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .modal-card { box-shadow: 0 25px 70px rgba(0,0,0,0.65); }
+:where(:root[data-theme="dark"]) .nav-icon { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .nav-item:hover { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .newcomer-step { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 7px 18px rgba(0,0,0,0.088); }
+:where(:root[data-theme="dark"]) .not-found-mark { border: 1px solid #333d40; box-shadow: 0 14px 30px rgba(0,0,0,0.264); }
+:where(:root[data-theme="dark"]) .not-found-page { background: #2a211c; }
+:where(:root[data-theme="dark"]) .notice { background: #1b2f2e; color: #5fc9bd; }
+:where(:root[data-theme="dark"]) .notice.warn { background: #2a211c; color: #f2907a; }
+:where(:root[data-theme="dark"]) .photo-card { box-shadow: 0 5px 17px rgba(0,0,0,0.077); }
+:where(:root[data-theme="dark"]) .photo-card.map-card img { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .plan-summary > div { background: #16292a; }
+:where(:root[data-theme="dark"]) .primary-nav { box-shadow: 15px 20px 35px rgba(0,0,0,0.264); }
+:where(:root[data-theme="dark"]) .resource-card { background: #1e2427; border: 1px solid #333d40; box-shadow: 0 5px 16px rgba(0,0,0,0.077); }
+:where(:root[data-theme="dark"]) .resource-card-title span { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .resource-quick-card { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .resource-quick-card:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .search-box input { background: #1e2427; }
+:where(:root[data-theme="dark"]) .search-filter { background: #16292a; }
+:where(:root[data-theme="dark"]) .search-filter-row { border-bottom: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .search-result { border-bottom: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .search-result strong span { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .search-result:hover { background: #16292a; }
+:where(:root[data-theme="dark"]) .section-head .section-home-link { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .section-head .section-link { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .section-icon { background: #16292a; border: 1px solid #333d40; }
+:where(:root[data-theme="dark"]) .stat-card, :where(:root[data-theme="dark"]) .card, :where(:root[data-theme="dark"]) .entry-card { box-shadow: 0 5px 17px rgba(0,0,0,0.077); }
+:where(:root[data-theme="dark"]) .tag { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .thanks-card { background: rgba(29,35,38,.72); }
+:where(:root[data-theme="dark"]) .thanks-image { background: #1e2427; }
+:where(:root[data-theme="dark"]) .thanks-inner { background: #2a211c; border: 1px solid #333d40; box-shadow: 0 8px 22px rgba(0,0,0,0.11); }
+:where(:root[data-theme="dark"]) .theme-toggle:hover { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .to-top { background: rgba(29,35,38,.94); box-shadow: 0 10px 24px rgba(0,0,0,0.308); }
+:where(:root[data-theme="dark"]) .to-top:hover { border-color: #333d40; }
+:where(:root[data-theme="dark"]) .topbar { background: rgba(29,35,38,.93); }
+:where(:root[data-theme="dark"]) .training-basic { background: #1e2427; }
+:where(:root[data-theme="dark"]) .training-card:nth-child(3n) .training-sticker { background: #1b2f2e; }
+:where(:root[data-theme="dark"]) .training-discipline-card li { border-bottom: 1px dashed #333d40; }
+:where(:root[data-theme="dark"]) .training-equip-card header span { background: #2a211c; color: #f2907a; }
+:where(:root[data-theme="dark"]) .training-equip-card, :where(:root[data-theme="dark"]) .training-discipline-card { background: #1e2427; box-shadow: 0 7px 20px rgba(0,0,0,0.11); }
+:where(:root[data-theme="dark"]) .training-equip-card:first-child header span, :where(:root[data-theme="dark"]) .training-equip-card:nth-child(2) header span { background: #2d2620; color: #f2907a; }
+:where(:root[data-theme="dark"]) .training-equip-item { border-bottom: 1px dashed #333d40; }
+:where(:root[data-theme="dark"]) .training-faq-icon { color: #f2907a; }
+:where(:root[data-theme="dark"]) .training-faq-item { background: #1e2427; box-shadow: 0 6px 18px rgba(0,0,0,0.099); }
+:where(:root[data-theme="dark"]) .training-question { background: #1a2023; }
+:where(:root[data-theme="dark"]) .training-sticker { background: #2a211c; color: #f2907a; }
+:where(:root[data-theme="dark"]) .training-tip { background: #2a211c; border: 1px solid #333d40; color: #f2907a; }
+:where(:root[data-theme="dark"]) .tuition-tag { background: #2a211c; color: #f2907a; }
+:where(:root[data-theme="dark"]) .wechat-qr { background: #1e2427; }
+/* ===== 深色模式结束 ===== */
