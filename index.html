@@ -27,7 +27,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="styles.min.css?v=cbad8f1d19">
+  <link rel="stylesheet" href="styles.min.css?v=387d510422">
 </head>
 <body>
   <div class="site-shell">
@@ -129,6 +129,11 @@
   </div>
 
   <div class="overlay" id="overlay"></div>
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="移动端快捷导航">
+    <button type="button" data-mobile-action="home" aria-label="返回首页"><span aria-hidden="true">⌂</span>首页</button>
+    <button type="button" data-mobile-action="search" aria-label="打开站内搜索"><span aria-hidden="true">⌕</span>搜索</button>
+    <button type="button" data-mobile-action="contact" aria-label="前往联系我"><span aria-hidden="true">✉</span>联系我</button>
+  </nav>
   <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card" id="modalCard"></div>
   </div>
@@ -143,6 +148,6 @@
     <div class="assistant-note">本地检索模式 · 重要信息以官方通知为准</div>
   </aside>
 
-  <script src="app.min.js?v=f3863a19b3" defer></script>
+  <script src="app.min.js?v=bdf18f219b" defer></script>
 </body>
 </html>

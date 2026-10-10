@@ -694,6 +694,8 @@ button { border: 0; cursor: pointer; color: inherit; }
 /* 320~360px 这类极窄屏，顶栏子元素太多，间距再收一点给深色模式切换按钮留位置。 */
 @media (max-width: 360px) {
   .topbar-main { gap: 8px; }
+  .search-box input { padding-right: 8px; padding-left: 30px; }
+  .search-box kbd { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -790,6 +792,39 @@ img { max-width: 100%; height: auto; }
 @media (max-width: 520px) {
   .policy-toolbar { align-items: flex-start; flex-direction: column; gap: 9px; }
   .aid-tl-node { padding: 11px 13px; }
+}
+
+.identity-selector { margin: 0 0 54px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.identity-selector h2 { margin: 0; color: var(--navy-text); font-size: 22px; }
+.identity-selector > p, .identity-guide p { margin: 5px 0 14px; color: var(--muted); font-size: 13px; }
+.identity-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.identity-option { min-height: 46px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--navy-text); font-weight: 700; }
+.identity-option[aria-pressed="true"] { border-color: var(--teal-line); background: var(--teal); color: #fff; }
+.identity-guide { margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--line); }
+.identity-guide strong { color: var(--navy-text); }
+.identity-actions, .newcomer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.identity-actions .action-button, .newcomer-actions .text-button { min-height: 44px; }
+.identity-route-link { display: inline-block; padding: 10px 0 0; color: var(--teal-text); font-size: 13px; }
+.newcomer-section { scroll-margin-top: 150px; }
+.newcomer-path { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.newcomer-step.is-relevant { border-color: var(--teal-line); }
+.mobile-bottom-nav { display: none; }
+@media (max-width: 850px) {
+  body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  .newcomer-path { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-bottom-nav { position: fixed; inset: auto 0 0; z-index: 25; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 7px 12px calc(7px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); }
+  .mobile-bottom-nav button { display: grid; place-items: center; gap: 1px; min-height: 48px; border-radius: 10px; background: transparent; color: var(--muted); font-size: 12px; }
+  .mobile-bottom-nav button span { font-size: 22px; line-height: 1.1; }
+  .mobile-bottom-nav button.active { background: var(--paper); color: var(--teal-text); font-weight: 700; }
+  .assistant-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+  .assistant { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 180px); overflow-y: auto; }
+  .to-top { bottom: calc(158px + env(safe-area-inset-bottom, 0px)); }
+  .contact-section { scroll-margin-top: 100px; }
+}
+@media (max-width: 520px) {
+  .identity-selector { padding: 17px 14px; }
+  .identity-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .newcomer-path { grid-template-columns: 1fr; }
 }
 
 /* ===== 深色模式（由 tools/gen-dark-mode.py 生成，勿手改）===== */

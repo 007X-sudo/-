@@ -1,4 +1,10 @@
-const state = { data: {}, route: 'home', majorType: '全部', majorCollege: '全部', majorQuery: '', checklist: {}, searchIndex: [], searchFilter: '全部' };
+const state = { data: {}, route: 'home', identity: 'prearrival', majorType: '全部', majorCollege: '全部', majorQuery: '', checklist: {}, searchIndex: [], searchFilter: '全部' };
+const homeIdentities = [
+  { id: 'prearrival', label: '准新生', note: '先确认报到要求，再准备证件、行李与费用。', routes: ['checklist', 'map', 'fees'], phases: [0, 1] },
+  { id: 'arrived', label: '已报到', note: '熟悉宿舍与校园，完成军训和平台准备。', routes: ['dorm', 'campus', 'training'], phases: [1, 2] },
+  { id: 'studying', label: '大一学习', note: '了解校内学习平台，安排课程与技能积累。', routes: ['resources', 'course', 'skills'], phases: [3] },
+  { id: 'growth', label: '成长规划', note: '结合兴趣与专业，逐步了解竞赛、升学和实习。', routes: ['compete', 'postgrad', 'job'], phases: [4] }
+];
 const pages = [
   { id: 'home', name: '首页', sub: '新生入学与校园生活速览', icon: '⌂' },
   { id: 'about', name: '学校概况', sub: '校史·校区·官方信息', icon: '校' },
@@ -314,14 +320,32 @@ function renderHome() {
   const site = state.data.site;
   const factCards = site.facts.map(fact => `<div class="stat-card"><div class="num">${esc(fact.icon)}</div><div class="label">${esc(fact.label)}<br><strong>${esc(fact.value)}</strong></div></div>`).join('');
   const entries = pages.filter(page => page.id !== 'home').map(page => [page.id, page.icon, page.name, page.sub]);
-  const newcomerPath = [['报到前', '确认校区与时间', '先看录取材料、迎新系统、地图和报到安排。', 'map'], ['准备期', '整理证件与行李', '用入学清单核对证件、床品、生活用品和资料。', 'checklist'], ['入学后', '完成平台与课程准备', '开通校内平台，了解选课、军训、校园服务和社团。', 'resources'], ['大一阶段', '持续积累与规划', '从竞赛、证书、技能成长到考研保研和实习逐步规划。', 'compete']].map(([phase, title, text, route], index) => `<article class="newcomer-step"><span class="newcomer-step-number">0${index + 1}</span><div><small>${phase}</small><h3>${title}</h3><p>${text}</p><button class="text-button" data-route="${route}">进入相关板块 →</button></div></article>`).join('');
-  $('#page-home').innerHTML = `${scrollExpandMarkup()}<div class="hero"><div class="hero-content"><span class="eyebrow">南华大学 · 新生入学季</span><h1>相安南华</h1><p>把第一次到南华的期待，整理成一份可查、可用、会更新的校园生活手册。</p><div class="hero-actions"><button class="button" data-route="checklist">开始准备报到 →</button><button class="button secondary" data-route="about">认识南华大学</button></div></div></div>
+  const newcomerPath = [
+    ['报到前一周', '核对材料与预算', '确认通知中的时间和校区，核对证件、行李、缴费与资助材料。', ['checklist', 'fees', 'policies']],
+    ['报到当天', '找到校区与宿舍', '按官方迎新安排完成报到，熟悉地图和宿舍入住注意事项。', ['map', 'dorm']],
+    ['入学第一周', '适应校园生活', '了解校园服务和军训准备，按学院要求使用校内平台。', ['campus', 'training', 'resources']],
+    ['大一上学期', '建立学习与活动节奏', '安排课程、了解社团，逐步尝试竞赛与证书备考。', ['course', 'campus', 'compete', 'cert']],
+    ['长期发展', '积累技能与规划方向', '结合兴趣和专业，持续了解技能成长、升学与实习求职。', ['skills', 'postgrad', 'job']]
+  ].map(([phase, title, text, routes], index) => `<article class="newcomer-step" data-newcomer-phase="${index}"><span class="newcomer-step-number">0${index + 1}</span><div><small>${phase}</small><h3>${title}</h3><p>${text}</p><div class="newcomer-actions">${routes.map(route => `<button type="button" class="text-button" data-route="${route}">${esc(pageMeta(route).name)} →</button>`).join('')}</div></div></article>`).join('');
+  $('#page-home').innerHTML = `<section class="identity-selector" aria-labelledby="identityTitle"><h2 id="identityTitle">当前身份选择</h2><p>选一个你现在的阶段，查看推荐入口；所有板块仍可自由浏览。</p><div class="identity-options" role="group" aria-label="当前身份">${homeIdentities.map(item => `<button type="button" class="identity-option" data-home-identity="${item.id}" aria-pressed="false" aria-controls="identityGuide">${item.label}</button>`).join('')}</div><div class="identity-guide" id="identityGuide" aria-live="polite"></div></section>${scrollExpandMarkup()}<div class="hero"><div class="hero-content"><span class="eyebrow">南华大学 · 新生入学季</span><h1>相安南华</h1><p>把第一次到南华的期待，整理成一份可查、可用、会更新的校园生活手册。</p><div class="hero-actions"><button class="button" data-route="checklist">开始准备报到 →</button><button class="button secondary" data-route="about">认识南华大学</button></div></div></div>
     ${notice(site.notice, true)}
     <section class="section"><div class="grid grid-4">${factCards}</div></section>
-    <section class="section newcomer-section">${sectionHead('新生任务路线', '按时间顺序完成关键准备，减少临近报到时的信息焦虑')}<div class="newcomer-path">${newcomerPath}</div></section>
+    <section class="section newcomer-section" id="newcomerRoute">${sectionHead('新生入学路线', '从报到前到长期发展；高亮阶段对应你的当前身份，具体安排以当年通知为准')}<div class="newcomer-path">${newcomerPath}</div></section>
     <section class="section">${sectionHead('快速入口', '从你现在最需要的地方开始')}<div class="grid grid-3">${entries.map(([route, icon, title, desc]) => `<button class="entry-card" data-route="${route}">${quickIcon(route)}<strong>${title}</strong><small>${desc}</small></button>`).join('')}</div></section>
     <section class="section">${sectionHead('南华校园印象', '两校区入口、校园建筑与运动空间')}<div class="photo-grid"><figure class="photo-card"><img src="assets/images/gate-hongxiang.webp" alt="南华大学红湘校区正门" fetchpriority="high"><figcaption class="photo-caption"><strong>红湘校区正门</strong><small>主校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/gate-yumu.webp" alt="南华大学雨母校区正门"><figcaption class="photo-caption"><strong>雨母校区正门</strong><small>新校区入口照片</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/nanhualou.webp" alt="南华大学南华楼夜景"><figcaption class="photo-caption"><strong>南华楼</strong><small>校园夜景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/library.webp" alt="南华大学图书馆"><figcaption class="photo-caption"><strong>图书馆</strong><small>校园建筑日景</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/teaching-building.webp" alt="南华大学逸夫楼教学楼"><figcaption class="photo-caption"><strong>逸夫楼（教学楼）</strong><small>教学楼建筑</small></figcaption></figure><figure class="photo-card"><img loading="lazy" src="assets/images/playground.webp" alt="南华大学操场"><figcaption class="photo-caption"><strong>操场</strong><small>校园运动空间</small></figcaption></figure></div></section>
     <section class="section">${sectionHead('新生先看这三件事', '减少临近报到时的信息焦虑')}<div class="grid grid-3"><div class="info-card card"><h3>先确认校区与时间</h3><p>报到校区、时间和流程请以录取材料、迎新系统及学院通知为准。</p></div><div class="info-card card"><h3>再准备证件和材料</h3><p>录取通知书、身份证、证件照和按要求的档案材料优先准备。</p></div><div class="info-card card"><h3>最后购买生活用品</h3><p>床品尺寸、宿舍规定和快递地址先确认，避免重复购买或寄错地址。</p></div></div></section>`;
+  updateHomeIdentity(false);
+  document.querySelectorAll('[data-home-identity]').forEach(button => button.addEventListener('click', () => { state.identity = button.dataset.homeIdentity; updateHomeIdentity(); }));
+}
+
+function updateHomeIdentity(bindRoutes = true) {
+  const identity = homeIdentities.find(item => item.id === state.identity);
+  document.querySelectorAll('[data-home-identity]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.homeIdentity === identity.id)));
+  const guide = $('#identityGuide');
+  guide.innerHTML = `<strong>${identity.label} · 建议先看</strong><p>${identity.note}</p><div class="identity-actions">${identity.routes.map(route => `<button type="button" class="action-button" data-route="${route}">${esc(pageMeta(route).name)} →</button>`).join('')}</div><a class="identity-route-link" href="#newcomerRoute" data-newcomer-scroll>查看完整入学路线 ↓</a>`;
+  if (bindRoutes) bindRouteButtons(guide);
+  guide.querySelector('[data-newcomer-scroll]').addEventListener('click', event => { event.preventDefault(); $('#newcomerRoute').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  document.querySelectorAll('[data-newcomer-phase]').forEach(step => step.classList.toggle('is-relevant', identity.phases.includes(Number(step.dataset.newcomerPhase))));
 }
 
 function bindScrollExpand() {
@@ -639,6 +663,9 @@ async function navigate(route, syncHash = true) {
   $('#pageTitle').textContent = meta.name;
   $('#pageSubtitle').textContent = meta.sub;
   $('#topbar').classList.remove('nav-open');
+  const mobileHome = $('[data-mobile-action="home"]');
+  mobileHome.classList.toggle('active', state.route === 'home');
+  if (state.route === 'home') mobileHome.setAttribute('aria-current', 'page'); else mobileHome.removeAttribute('aria-current');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   const container = $('#page-' + state.route);
   // 这一板块的数据还没到位时先放个占位，避免出现一片空白。
@@ -723,6 +750,13 @@ async function init() {
   if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(prefetchRemainingData, { timeout: 3000 });
   else window.setTimeout(prefetchRemainingData, 1500);
   $('#mobileHomeLink').addEventListener('click', () => navigate('home'));
+  $('#mobileBottomNav').addEventListener('click', async event => {
+    const button = event.target.closest('[data-mobile-action]');
+    if (!button) return;
+    if (button.dataset.mobileAction === 'home') await navigate('home');
+    if (button.dataset.mobileAction === 'search') { $('#topbar').classList.remove('nav-open'); window.scrollTo({ top: 0, behavior: 'instant' }); $('#globalSearch').focus(); }
+    if (button.dataset.mobileAction === 'contact') { if (state.route !== 'home') await navigate('home'); $('#contact').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
   const syncHashRoute = () => { const route = location.hash.slice(1); if (pages.some(page => page.id === route) && route !== state.route) navigate(route, false); };
   window.addEventListener('hashchange', syncHashRoute);
   window.addEventListener('popstate', syncHashRoute);
