@@ -734,6 +734,17 @@ async function init() {
   $('#overlay').addEventListener('click', closeModal); $('#modal').addEventListener('click', event => { if (event.target.id === 'modal') closeModal(); }); document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
   $('#assistantButton').addEventListener('click', () => { prefetchRemainingData(); $('#assistant').classList.toggle('open'); if ($('#assistantBody').children.length === 0) assistantMessage('你好，我是小凯。可以问我南华大学的宿舍、报到、专业和资助信息。'); });
   $('#assistantClose').addEventListener('click', () => $('#assistant').classList.remove('open'));
+  // 回到顶部：滚过一屏才出现；点击平滑回顶，并在用户开启「减弱动效」时改为直接跳转。
+  const toTop = $('#toTop');
+  if (toTop) {
+    const syncToTop = () => toTop.classList.toggle('is-visible', window.scrollY > 600);
+    window.addEventListener('scroll', syncToTop, { passive: true });
+    syncToTop();
+    toTop.addEventListener('click', () => {
+      const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+    });
+  }
   $('#assistantForm').addEventListener('submit', event => { event.preventDefault(); const input = $('#assistantInput'); const query = input.value.trim(); if (!query) return; assistantMessage(query, true); assistantMessage(answerQuestion(query)); input.value = ''; });
   window.addEventListener('keydown', event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); $('#globalSearch').focus(); } });
 }
