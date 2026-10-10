@@ -502,9 +502,11 @@ button { border: 0; cursor: pointer; color: inherit; }
 .contact-card h3 { margin: 10px 0 0; color: var(--navy-text); font-size: 17px; }
 .contact-role { margin: 2px 0 12px; color: var(--faint); font-size: 12px; }
 .wechat-qr { width: min(100%, 230px); aspect-ratio: 1; display: block; object-fit: contain; border-radius: 10px; background: #fff; }
-.contact-caption { margin: 8px 0 8px; color: var(--muted); font-size: 12px; }
-.contact-note { display: inline-flex; align-items: center; gap: 5px; margin: 0 0 12px; padding: 6px 11px; border: 1px dashed rgba(31,122,120,.45); border-radius: 9px; color: var(--teal-text); background: #edf6f3; font-size: 12px; font-weight: 600; line-height: 1.5; }
-.contact-note span { font-size: 13px; }
+.contact-caption { margin: 8px 0 12px; color: var(--muted); font-size: 12px; }
+/* 注意：作者碎碎念容器用的是 .contact-note，这里必须用不同的类名，
+   否则这条 inline-flex 会套到那个容器上，把它压成一列「每行一个字」。 */
+.contact-qr-note { display: inline-flex; align-items: center; gap: 5px; margin: 0 0 12px; padding: 6px 11px; border: 1px dashed rgba(31,122,120,.45); border-radius: 9px; color: var(--teal-text); background: #edf6f3; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.contact-qr-note span { font-size: 13px; }
 .contact-links { display: grid; gap: 7px; width: 100%; }
 .contact-link { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; border-radius: 8px; color: var(--teal-text); background: #edf6f3; font-size: 12px; }
 .contact-link.pending { color: var(--faint); background: #f3f4f1; }
@@ -856,7 +858,7 @@ img { max-width: 100%; height: auto; }
   .contact-inner { background: #16292a; border: 1px solid #333d40; }
   .contact-link { background: #1b2f2e; }
   .contact-link.pending { background: #171c1f; }
-  .contact-note { background: #1b2f2e; }
+  .contact-qr-note { background: #1b2f2e; }
   .content-status { background: #1b2f2e; }
   .content-status.source-status-experience { background: #2d2620; border-color: #333d40; color: #d9a25a; }
   .content-status.source-status-merchant { background: #2d2620; border-color: #333d40; color: #e0b972; }
