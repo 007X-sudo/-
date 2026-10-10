@@ -16,14 +16,12 @@
   <link rel="preload" as="image" href="assets/images/gate-hongxiang.webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/images/nanhualou.webp">
   <script>
-    /* 深色模式：默认跟随系统偏好，用户在顶栏手动切过之后以其选择为准。
-       必须在这里同步执行，否则样式表生效前会先闪一下浅色。 */
+    /* 深色模式：进入时默认为浅色，只有用户主动切过深色才沿用他的选择（不跟随系统偏好）。
+       必须在这里同步执行，否则样式表生效前会先闪一下主题。 */
     (function () {
       try {
         var stored = localStorage.getItem('theme');
-        var dark = stored ? stored === 'dark'
-          : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', stored === 'dark' ? 'dark' : 'light');
       } catch (error) {
         document.documentElement.setAttribute('data-theme', 'light');
       }
@@ -145,6 +143,6 @@
     <div class="assistant-note">本地检索模式 · 重要信息以官方通知为准</div>
   </aside>
 
-  <script src="app.min.js?v=66f0abf611" defer></script>
+  <script src="app.min.js?v=f3863a19b3" defer></script>
 </body>
 </html>

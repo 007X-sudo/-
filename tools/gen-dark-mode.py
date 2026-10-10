@@ -30,9 +30,9 @@ START_MARK = "/* ===== 深色模式（由 tools/gen-dark-mode.py 生成，勿手
 END_MARK = "/* ===== 深色模式结束 ===== */"
 
 # 深色块挂在 <html data-theme="dark"> 上，而不是 @media (prefers-color-scheme: dark)。
-# 原因：要支持「默认跟随系统 + 用户手动覆盖」，用媒体查询就得把整套规则写两份
+# 原因：要支持「进入默认浅色 + 用户手动切换」，用媒体查询就得把整套规则写两份
 # （一份给自动、一份给显式 data-theme），属性选择器只要一份。
-# 系统偏好的判断与初始写入在 index.html 头部的一小段同步脚本里完成。
+# 初始值的判断与写入在 index.html 头部的一小段同步脚本里完成（默认浅色）。
 #
 # 组件规则的前缀必须用 :where() 包住 —— :where() 的特异性为 0，于是
 # `:where(:root[data-theme=dark]) .card` 的特异性与原来的 `.card` 完全相同，
@@ -44,7 +44,7 @@ DARK_PREFIX = ':where(:root[data-theme="dark"])'
 
 DARK_ROOT = """:root[data-theme="dark"] {
   color-scheme: dark;
-  /* 深色变量。默认跟随系统偏好，用户点顶栏的切换按钮后以手动选择为准。 */
+  /* 深色变量。进入时默认浅色，用户点顶栏的切换按钮后以他的选择为准。 */
   --paper: #14181a;
   --card: #1e2427;
   --competition-card: #1e2427;

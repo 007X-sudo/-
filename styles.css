@@ -795,7 +795,7 @@ img { max-width: 100%; height: auto; }
 /* ===== 深色模式（由 tools/gen-dark-mode.py 生成，勿手改）===== */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* 深色变量。默认跟随系统偏好，用户点顶栏的切换按钮后以手动选择为准。 */
+  /* 深色变量。进入时默认浅色，用户点顶栏的切换按钮后以他的选择为准。 */
   --paper: #14181a;
   --card: #1e2427;
   --competition-card: #1e2427;

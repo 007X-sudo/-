@@ -731,12 +731,10 @@ async function init() {
   $('#globalSearch').addEventListener('keydown', event => { if (event.key === 'Escape') { event.target.value = ''; $('#searchResults').classList.remove('open'); } });
   document.addEventListener('click', event => { if (!event.target.closest('.search-box')) $('#searchResults').classList.remove('open'); });
   $('#menuButton').addEventListener('click', () => $('#topbar').classList.toggle('nav-open'));
-  // 深色模式切换：初始值由 index.html 头部的同步脚本按系统偏好写入 data-theme；
-  // 用户手动切过之后写入 localStorage，此后以手动选择为准，不再跟随系统。
+  // 深色模式切换：进入时默认为浅色（由 index.html 头部的同步脚本写入 data-theme），
+  // 用户手动切过之后写入 localStorage，下次进入沿用他的选择。
   const themeToggle = $('#themeToggle');
   if (themeToggle) {
-    const systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-    const storedTheme = () => { try { return localStorage.getItem('theme'); } catch (error) { return null; } };
     const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
     const syncThemeButton = () => {
       const dark = isDarkTheme();
@@ -750,7 +748,6 @@ async function init() {
       syncThemeButton();
     };
     themeToggle.addEventListener('click', () => setTheme(isDarkTheme() ? 'light' : 'dark', true));
-    if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', event => { if (!storedTheme()) setTheme(event.matches ? 'dark' : 'light', false); });
     syncThemeButton();
   }
   $('#overlay').addEventListener('click', closeModal); $('#modal').addEventListener('click', event => { if (event.target.id === 'modal') closeModal(); }); document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
