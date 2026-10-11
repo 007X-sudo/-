@@ -766,7 +766,7 @@ async function init() {
   document.addEventListener('click', event => { if (!event.target.closest('.search-box')) $('#searchResults').classList.remove('open'); });
   $('#menuButton').addEventListener('click', () => $('#topbar').classList.toggle('nav-open'));
   // 深色模式切换：进入时默认为浅色（由 index.html 头部的同步脚本写入 data-theme），
-  // 用户手动切过之后写入 localStorage，下次进入沿用他的选择。
+  // 手动选择仅在当前页面有效，不保存或读取上次主题。
   const themeToggle = $('#themeToggle');
   if (themeToggle) {
     const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
@@ -776,12 +776,11 @@ async function init() {
       themeToggle.setAttribute('aria-label', dark ? '切换到浅色模式' : '切换到深色模式');
       themeToggle.title = dark ? '切换到浅色模式' : '切换到深色模式';
     };
-    const setTheme = (theme, persist) => {
+    const setTheme = (theme) => {
       document.documentElement.setAttribute('data-theme', theme);
-      if (persist) { try { localStorage.setItem('theme', theme); } catch (error) { /* 无痕模式下可能写不进去 */ } }
       syncThemeButton();
     };
-    themeToggle.addEventListener('click', () => setTheme(isDarkTheme() ? 'light' : 'dark', true));
+    themeToggle.addEventListener('click', () => setTheme(isDarkTheme() ? 'light' : 'dark'));
     syncThemeButton();
   }
   $('#overlay').addEventListener('click', closeModal); $('#modal').addEventListener('click', event => { if (event.target.id === 'modal') closeModal(); }); document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
