@@ -285,14 +285,14 @@ const quickIconPaths = {
   antiScam: '<path d="M12 3 20 6v5c0 5-3.3 8.7-8 10-4.7-1.3-8-5-8-10V6z"/><path d="M12 8v4M12 16h.01"/>',
   course: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/>',
   cert: '<circle cx="12" cy="10" r="7"/><path d="m9 10 2 2 4-4M9 16l-1 5 4-2 4 2-1-5"/>',
-  channels: '<circle cx="12" cy="12" r="2"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8M2.8 2.8a13 13 0 0 0 0 18.4M21.2 2.8a13 13 0 0 1 0 18.4"/>',
+  channels: '<circle cx="12" cy="12" r="2"/><path d="M7 7a7.1 7.1 0 0 0 0 10"/><path d="M17 7a7.1 7.1 0 0 1 0 10"/><path d="M5 4a10.7 10.7 0 0 0 0 16"/><path d="M19 4a10.7 10.7 0 0 1 0 16"/>',
   postgrad: '<path d="m3 9 9-5 9 5-9 5zM7 11v5c3 2 7 2 10 0v-5M21 9v7"/>',
   job: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/>',
-  feed: '<path d="M4 19a2 2 0 0 1-2-2M4 13a8 8 0 0 1 8 8M4 7a14 14 0 0 1 14 14M4 3h.01"/>',
+  feed: '<circle cx="5" cy="19" r="1"/><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/>',
   faq: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-1 .8-1.7 1.2-1.7 2.7M12 17h.01"/>',
   archive: '<path d="M4 7h16v13H4zM3 4h18v3H3zM9 12h6"/>'
 };
-function quickIcon(route) { return `<span class="entry-icon entry-icon-${route}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${quickIconPaths[route] || '<circle cx="12" cy="12" r="8"/>'}</svg></span>`; }
+function quickIcon(route) { const paths = (quickIconPaths[route] || '<circle cx="12" cy="12" r="8"/>').replace(/<(path|circle|rect|ellipse|line|polyline|polygon)\b/g, '<$1 pathLength="1"'); return `<span class="entry-icon entry-icon-${route}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${paths}</svg></span>`; }
 function sectionHead(title, detail, link = '') { return `<div class="section-head"><span class="section-icon" aria-hidden="true">${sectionGlyph(title)}</span><div class="section-copy"><h2>${title}</h2><p>${detail}</p></div>${link ? `<button class="section-link" data-route="${link}">查看全部 →</button>` : ''}${state.route !== 'home' ? '<button class="section-home-link" data-route="home" aria-label="返回首页">⌂ 首页</button>' : ''}</div>`; }
 function actionLink(url, label, kind = '') {
   const isDownload = kind === 'download' || String(url).startsWith('downloads/');
